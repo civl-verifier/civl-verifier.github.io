@@ -1,0 +1,5 @@
+title: CIVL
+description: A refinement-based verifier for concurrent programs
+theme: jekyll-theme-cayman
+github:
+  is_project_page: false
