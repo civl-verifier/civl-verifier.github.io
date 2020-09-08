@@ -1,8 +1,83 @@
-CIVL is a verifier for concurrent programs built on top of [Boogie](https://github.com/boogie-org/boogie).
+CIVL is a verifier for concurrent programs following two core design principles.
+
+* **Layered Refinement** (instead of monolithic proofs): Programs are verified
+  across multiple layers of refinement, where each refinement step corresponds
+  to a small simplifying program transformation. Proof construction becomes more
+  productive by decomposing the problem into small, manageable, and automatable
+  pieces, and the resulting proofs become simpler and easier to reuse.
+
+* **Structured Programs** (instead of transition systems): Each layer of
+  abstraction (from low-level implementations to high-level specifications) is
+  represented in the same language of structured programs. This naturally
+  bridges the verification gap down to implementations and enables the
+  utilization of program structure in proofs. All layers (and their connection)
+  are compactly expressed together as a single syntactic unit in a *layered
+  concurrent program*.
+
+CIVL supports a unique blend of established verification techniques for
+concurrent programs, including
+*stepwise-refinement*,
+*[gated atomic actions](https://doi.org/10.1145/1480881.1480885)*,
+*Liption's reduction (mover types)*,
+*inductive invariants* (noninterference reasoning à la Owicki-Gries and rely-guarantee),
+and *linear permissions*.
+Furthermore, it is the driver and testbed for cutting-edge research on novel
+verification techniques and methodologies, like
+*yield invariants*,
+*inductive sequentialization*,
+and *synchronization*.
+
+Under the hood, CIVL is built on top of
+[Boogie](https://github.com/boogie-org/boogie), a verifier for sequential
+programs. CIVL decomposes proof checking into modular verification conditions
+that are automatically verified by a theorem prover/SMT solver.
+
+# Getting Started
+
+CIVL is implemented directly as part of [Boogie](https://github.com/boogie-org/boogie),
+which can be installed from a [NuGet package](https://www.nuget.org/packages/Boogie) or
+[built from source](https://github.com/boogie-org/boogie#building), and requires the
+[Z3](https://github.com/Z3Prover/z3) theorem prover.
+
+To verify a CIVL program, simply invoke Boogie on the program as follows
+(CIVL programs typically use Z3's generalized array theory, enabled by `-useArrayTheory`):
+
+```
+$ boogie -nologo -useArrayTheory Test/civl/ticket.bpl
+
+Boogie program verifier finished with 19 verified, 0 errors
+```
+
+To inspect the plain Boogie program that CIVL generates, use the option `-civlDesugaredFile:<file.bpl>`.
+Further available options are listed by `-help`.
 
 # Resources
 
-## [Tutorial](tutorial)
+## Examples
+
+CIVL comes with an extensive [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl)
+of example programs, including
+a [verified garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/GC.bpl),
+the [VerifiedFT dynamic race detector](https://github.com/boogie-org/boogie/blob/master/Test/civl/verified-ft.bpl),
+lock implementations
+([spinlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/lock-introduced.bpl),
+[ticket](https://github.com/boogie-org/boogie/blob/master/Test/civl/ticket.bpl),
+[seqlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/seqlock.bpl)),
+concurrent data structures
+([treiber stack](https://github.com/boogie-org/boogie/blob/master/Test/civl/treiber-stack.bpl),
+[work stealing queue](https://github.com/boogie-org/boogie/blob/master/Test/civl/wsq.bpl)),
+distributed protocols
+([Paxos](https://github.com/boogie-org/boogie/tree/master/Test/civl/inductive-sequentialization/paxos),
+[two-phase commit](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/2PC.bpl) /
+[2PC](https://github.com/boogie-org/boogie/blob/master/Test/civl/async/2pc.bpl),
+[Chang-Roberts](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/ChangRoberts.bpl)),
+and many more.
+
+## [Tutorial (under construction)](tutorial)
+
+Until the CIVL tutorial becomes available, we recommend to have a look at simple
+examples from our [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl),
+like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 
 ## Publications
 
@@ -31,4 +106,6 @@ CIVL is a verifier for concurrent programs built on top of [Boogie](https://gith
 # Team
 
 * [Bernhard Kragl (IST Austria)](https://pub.ist.ac.at/~bkragl)
-* Shaz Qadeer (Novi)
+* [Shaz Qadeer (Novi)](https://scholar.google.com/citations?user=EqIVfYcAAAAJ&hl=en)
+
+If you are interested in CIVL, please get in touch! We are happy to give talks, lectures, and demos.
