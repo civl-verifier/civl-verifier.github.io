@@ -18,7 +18,7 @@ CIVL supports a unique blend of established verification techniques for
 concurrent programs, including
 *stepwise-refinement*,
 *[gated atomic actions](https://doi.org/10.1145/1480881.1480885)*,
-*Liption's reduction (mover types)*,
+*mover types (à la Lipton's reduction)*,
 *inductive invariants* (noninterference reasoning à la Owicki-Gries and rely-guarantee),
 and *linear permissions*.
 Furthermore, it is the driver and testbed for cutting-edge research on novel
