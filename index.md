@@ -11,21 +11,21 @@ CIVL is a verifier for concurrent programs following two core design principles.
   represented in the same language of structured programs. This naturally
   bridges the verification gap down to implementations and enables the
   utilization of program structure in proofs. All layers (and their connection)
-  are compactly expressed together as a single syntactic unit in a *layered
-  concurrent program*.
+  are compactly expressed together as a single syntactic unit in a 
+  *[layered concurrent program](https://doi.org/10.1007/978-3-319-96145-3_5)*.
 
 CIVL supports a unique blend of established verification techniques for
 concurrent programs, including
 *stepwise-refinement*,
 *[gated atomic actions](https://doi.org/10.1145/1480881.1480885)*,
-*mover types (à la Lipton's reduction)*,
+*[mover types](https://doi.org/10.1145/781131.781169)* (à la Lipton's reduction),
 *inductive invariants* (noninterference reasoning à la Owicki-Gries and rely-guarantee),
 and *linear permissions*.
 Furthermore, it is the driver and testbed for cutting-edge research on novel
 verification techniques and methodologies, like
-*yield invariants*,
-*inductive sequentialization*,
-and *synchronization*.
+*[yield invariants](https://doi.org/10.1007/978-3-030-53288-8_14)*,
+*[inductive sequentialization](https://doi.org/10.1145/3385412.3385980)*,
+and *[synchronization](https://dx.doi.org/10.4230/LIPIcs.CONCUR.2018.21)*.
 
 Under the hood, CIVL is built on top of
 [Boogie](https://github.com/boogie-org/boogie), a verifier for sequential
