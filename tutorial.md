@@ -125,6 +125,23 @@ procedure {:yields} {:layer 0} {:refines "AtomicWrite"}
 Write({:linear "tid"} tid: int, i: int, val: int);
 ```
 
+Explain that there is a general and customizable notion of collector functions.
+The next code snippet explains collectors.
+```
+type {:linear "perm"} {:datatype} Perm;
+function {:constructor} Left(i: int): Perm;
+function {:constructor} Right(i: int): Perm;
+
+function {:inline} {:linear "perm"} IntCollector(i: int) : [Perm]bool
+{
+  MapConst(false)[Left(i) := true][Right(i) := true]
+}
+function {:inline} {:linear "perm"} IntSetCollector(iset: [int]bool) : [Perm]bool
+{
+  (lambda p: Perm :: is#Left(p) && iset[i#Left(p)])
+}
+```
+
 # Refinement layers
 - basic mechanics
 - abstraction and reduction are symbiotic
