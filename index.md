@@ -11,7 +11,7 @@ CIVL is a verifier for concurrent programs following two core design principles.
   represented in the same language of structured programs. This naturally
   bridges the verification gap down to implementations and enables the
   utilization of program structure in proofs. All layers (and their connection)
-  are compactly expressed together as a single syntactic unit in a 
+  are compactly expressed together as a single syntactic unit in a
   *[layered concurrent program](https://doi.org/10.1007/978-3-319-96145-3_5)*.
 
 CIVL supports a unique blend of established verification techniques for
@@ -43,7 +43,7 @@ To verify a CIVL program, simply invoke Boogie on the program as follows
 (CIVL programs typically use Z3's generalized array theory, enabled by `-useArrayTheory`):
 
 ```
-$ boogie -nologo -useArrayTheory Test/civl/ticket.bpl
+$ boogie -nologo Test/civl/ticket.bpl
 
 Boogie program verifier finished with 19 verified, 0 errors
 ```
