@@ -140,12 +140,61 @@ function {:inline} {:linear "perm"} IntSetCollector(iset: [int]bool) : [Perm]boo
 {
   (lambda p: Perm :: is#Left(p) && iset[i#Left(p)])
 }
+
+var {:layer 0,1} barrierOn: bool;
+var {:layer 0,1} barrierCounter: int;
+var {:layer 0,1} {:linear "perm"} mutatorsInBarrier: [int]bool;
+
+procedure {:atomic} {:layer 1} AtomicEnterBarrier({:linear_in "perm"} i: int) returns ({:linear "perm"} p: Perm)
+modifies barrierCounter, mutatorsInBarrier;
+{
+    assert IsMutator(i);
+    mutatorsInBarrier[i] := true;
+    barrierCounter := barrierCounter - 1;
+    p := Right(i);
+}
+
+procedure {:atomic} {:layer 1} AtomicWaitForBarrierRelease({:linear_in "perm"} p: Perm, {:linear_out "perm"} i: int)
+modifies barrierCounter, mutatorsInBarrier;
+{
+    assert p == Right(i) && mutatorsInBarrier[i];
+    assume !barrierOn;
+    mutatorsInBarrier[i] := false;
+    barrierCounter := barrierCounter + 1;
+}
 ```
 
 # Refinement layers
-- basic mechanics
+
+The next code snippet explains the basic mechanics.
+```
+type {:linear "tid"} X;
+
+var {:layer 0,2} x: int;
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr();
+
+procedure {:left} {:layer 1} AtomicIncr()
+modifies x;
+{ x := x + 1; }
+
+procedure {:yields} {:layer 1} {:refines "AtomicIncrBy2"} IncrBy2()
+{
+  par Incr() | Incr();
+}
+
+procedure {:left} {:layer 2} AtomicIncrBy2()
+modifies x;
+{ x := x + 2; }
+
+procedure {:yields} {:layer 2} Main({:linear "tid"} tid: X)
+{
+  call IncrBy2();
+}
+```
 - abstraction and reduction are symbiotic
 
 # Tackling asynchony
+- Summarizing asynchronous calls directly
 - Summarizing asynchronous calls using pending asyncs
 - Eliminating pending asyncs
