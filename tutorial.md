@@ -192,9 +192,65 @@ procedure {:yields} {:layer 2} Main({:linear "tid"} tid: X)
   call IncrBy2();
 }
 ```
-- abstraction and reduction are symbiotic
+
+The next code snippet explains that abstraction can lead to a more precise mover type.
+```
+type {:linear "tid"} X;
+
+var {:layer 0,2} x: int;
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr();
+
+procedure {:atomic} {:layer 1,2} AtomicIncr()
+modifies x;
+{ x := x + 1; }
+
+procedure {:yields} {:layer 0} {:refines "AtomicRead"} Read() returns (v: int);
+
+procedure {:atomic} {:layer 1} AtomicRead() returns (v: int)
+{ v := x; }
+
+procedure {:yields} {:layer 1} {:refines "AbstractAtomicRead"} _Read() returns (v: int)
+{
+  call Read();
+}
+
+procedure {:left} {:layer 2} AbstractAtomicRead() returns (v: int)
+{ assume v <= x; }
+```
+
 
 # Tackling asynchony
-- Summarizing asynchronous calls directly
+
+The next code snippet shows how to summarizing asynchronous calls directly without using pending asyncs.
+
+```
+var {:layer 0,2} x : int;
+
+procedure {:yields} {:layer 1} {:refines "atomic_inc_x"} main (n: int)
+requires {:layer 1} n >= 0;
+{
+  call inc(n);
+}
+
+procedure {:yields} {:left} {:layer 1} {:terminates}  inc (i : int)
+modifies x;
+requires {:layer 1} i >= 0;
+ensures {:layer 1} x == old(x) + i;
+{
+  if (i > 0)
+  {
+    call inc_x(1);
+    async call {:sync} inc(i-1);
+  }
+}
+
+procedure {:both} {:layer 1,2} atomic_inc_x (n: int)
+modifies x;
+{ x := x + n; }
+
+procedure {:yields} {:layer 0} {:refines "atomic_inc_x"} inc_x (n: int);
+```
+
 - Summarizing asynchronous calls using pending asyncs
 - Eliminating pending asyncs
