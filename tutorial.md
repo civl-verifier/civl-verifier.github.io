@@ -173,13 +173,103 @@ ensures card(set[x := true]) == card(set) + 1;
 The lemma procedure `Lemma_add_to_set` states the fact about set cardinality,
 that adding an element to a set increases the sets cardinality by one.
 
+# Layered concurrent programs
+
+CIVL verifies a layered concurrent program by verifying each layer separately.
+We show an example to explain how a layered program represents a sequence of increasingly simpler concurrent programs.
+Understanding this foundational aspect of CIVL will make it easier to understand everything explained later.
+```
+var {:layer 0,2} x: int;
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr();
+procedure {:left} {:layer 1} AtomicIncr()
+modifies x;
+{ x := x + 1; }
+
+procedure {:yields} {:layer 1} {:refines "AtomicIncrBy2"} IncrBy2()
+{
+  par Incr() | Incr();
+}
+
+procedure {:layer 2} AtomicIncrBy2()
+modifies x;
+{ x := x + 2; }
+
+procedure {:yields} {:layer 2} Main()
+{
+  call IncrBy2();
+}
+```
+The program above represents two concurrent programs that share parts of the code and are layered one on top of the other.
+This program encodes three concurrent programs, at layers 0, 1, and 2, shown next.
+```
+// Program at layer 0
+
+var x: int;
+
+procedure {:yields} Incr();
+
+procedure {:yields} IncrBy2()
+{
+  par Incr() | Incr();
+}
+
+procedure {:yields} Main()
+{
+  call IncrBy2();
+}
+```
+The layer-0 program, shown above, contains only procedures.
+The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically the `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
+```
+// Program at layer 1
+
+var x: int;
+
+procedure AtomicIncr()
+modifies x;
+{ x := x + 1; }
+
+procedure {:yields} IncrBy2()
+{
+  call AtomicIncr();
+  call AtomicIncr();
+}
+
+procedure {:yields} Main()
+{
+  call IncrBy2();
+}
+```
+In the layer-1 program, shown above, the parallel call to `Incr` is rewritten to a sequence of calls to `AtomicIncr`.
+The justification for this rewrite is that `Incr` refines `AtomicIncr` and `AtomicIncr` is a left mover.
+```
+// Program at layer 2
+
+var x: int;
+
+procedure AtomicIncrBy2()
+modifies x;
+{ x := x + 2; }
+
+procedure {:yields} Main()
+{
+  call AtomicIncrBy2();
+}
+```
+In the layer-2 program, shown above, the call to procedure `IncrBy2` in `Main` is rewritten to a call to atomic action `AtomicIncrBy2`.
+The justification for this rewrite is that `IncrBy2` refines `AtomicIncrBy2`.
+
+In CIVL's model of the semantics of a concurrent program, a context switch is allowed only at entry or exit from a procedure or at an explicit `yield` statement.
+In particular, a context switch is not introduced just before or just after executing an atomic action.
+In the progression from the layer-0 program to the layer-2 program, the set of program locations where context switches may happen progressively reduces, thereby leading to simplified reasoning at the higher layer.
+
 # Tackling interference
 
 Reasoning about concurrent programs is difficult because of the
 possibility of interference among concurrently-executing procedures.
 We now present the various features in CIVL targeted towards specifying
 and controlling interference.
-
 The following program introduces location invariants,
 the simplest specification idiom addressing interference.
 ```
@@ -382,35 +472,7 @@ modifies barrierCounter, mutatorsInBarrier;
 }
 ```
 
-# Refinement layers
-
-The next code snippet explains the basic mechanics.
-
-```
-type {:linear "tid"} X;
-
-var {:layer 0,2} x: int;
-
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr();
-
-procedure {:left} {:layer 1} AtomicIncr()
-modifies x;
-{ x := x + 1; }
-
-procedure {:yields} {:layer 1} {:refines "AtomicIncrBy2"} IncrBy2()
-{
-  par Incr() | Incr();
-}
-
-procedure {:left} {:layer 2} AtomicIncrBy2()
-modifies x;
-{ x := x + 2; }
-
-procedure {:yields} {:layer 2} Main({:linear "tid"} tid: X)
-{
-  call IncrBy2();
-}
-```
+# Abstraction and reduction are symbiotic
 
 The next code snippet explains that abstraction can lead to a more precise mover type.
 
