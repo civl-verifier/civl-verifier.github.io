@@ -75,7 +75,7 @@ procedure {:intro}{:layer 2} BAR (...) returns (...)
 
 ## Yield Invariants
 
-A *yield invariant* has a layer number and a sequence of `ensures` clauses (but
+A *yield invariant* has a layer number and a sequence of `requires` clauses (but
 no body).
 
 ```
@@ -173,11 +173,15 @@ ensures card(set[x := true]) == card(set) + 1;
 The lemma procedure `Lemma_add_to_set` states the fact about set cardinality,
 that adding an element to a set increases the sets cardinality by one.
 
-# Tackling noninterference
+# Tackling interference
 
-The following program explains location invariants.
-In order to reduce mystery, there is brief explanation of layer annotations also.
+Reasoning about concurrent programs is difficult because of the
+possibility of interference among concurrently-executing procedures.
+We now present the various features in CIVL targeted towards specifying
+and controlling interference.
 
+The following program introduces location invariants,
+the simplest specification idiom addressing interference.
 ```
 var {:layer 0,1} x:int;
 
@@ -186,11 +190,9 @@ requires {:layer 1} x >= 5;
 ensures  {:layer 1} x >= 8;
 {
   call Incr(1);
-  yield;
-  assert {:layer 1} x >= 6;
+  yield; assert {:layer 1} x >= 6;
   call Incr(1);
-  yield;
-  assert {:layer 1} x >= 7;
+  yield; assert {:layer 1} x >= 7;
   call Incr(1);
 }
 
@@ -207,6 +209,51 @@ modifies x;
 
 procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
 ```
+The program above has two yielding procedures, `p` and `q`, each
+accessing the shared variable `x`.
+Accesses to `x` are encapsulated in the atomic action `AtomicIncr`,
+which increments `x` by the amount supplied in the parameter `val`.
+`AtomicIncr` is refined by the procedure `Incr`, whose implementation
+is not provided.
+The `{:layer 0}` annotation on `Incr` indicates that `Incr` does not exist on layers greater than 0.
+CIVL automatically rewrites a call to `Incr` to a call to `AtomicIncr` at layer 1.
+In CIVL, each layer is verified separately as an ordinary concurrent program.
+For example, verification of layer 1 of the program above is conceptually equivalent to verifying the following program.
+```
+var x:int;
+
+procedure {:yields} p()
+requires x >= 5;
+ensures x >= 8;
+{
+  call AtomicIncr(1);
+  yield; assert x >= 6;
+  call AtomicIncr(1);
+  yield; assert x >= 7;
+  call AtomicIncr(1);
+}
+
+procedure {:yields} q()
+{
+  call AtomicIncr(3);
+}
+
+procedure {:atomic} AtomicIncr(val: int)
+modifies x;
+{
+  x := x + val;
+}
+```
+The `yield` statement indicates that the executing thread may be suspended to allow another concurrently-executing thread to run.
+A `yield` statement may be optionally followed by a sequence of assert statements that collectively form the location invariant for the location of the yield statement.
+The `requires` annotations provide the location invariant for the implicit yield at procedure entry.
+Similarly, the `ensures` annotations provide the location invariant for the implicit yield at procedure exit.
+
+CIVL checks that a location invariant at a yiel is established by the thread when control arrives at the yield.
+CIVL also checks that each location invariant is preserved by any yield-to-yield code fragment in any procedure.
+Together, these checks guarantee that it is safe to assume the location invariant when the thread resumes execution after the yield statement.
+All specifications in the program above are verified.
+
 
 The next code snippet shows how to rewrite procedure `p` using yield invariants.
 It also introduces `yield_preserves` and `yield_loop`.
