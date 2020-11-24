@@ -190,8 +190,7 @@ procedure {:yields} {:layer 1} {:refines "AtomicIncrBy2"} IncrBy2()
 {
   par Incr() | Incr();
 }
-
-procedure {:layer 2} AtomicIncrBy2()
+procedure {:layer 2} {:atomic} AtomicIncrBy2()
 modifies x;
 { x := x + 2; }
 
@@ -200,8 +199,12 @@ procedure {:yields} {:layer 2} Main()
   call IncrBy2();
 }
 ```
-The program above represents two concurrent programs that share parts of the code and are layered one on top of the other.
-This program encodes three concurrent programs, at layers 0, 1, and 2, shown next.
+The program above represents three concurrent programs, at layers 0, 1, and 2, that share parts of their code.
+Layer 0 is the most concrete and layer 1 is the most abstract.
+The annotation `{:layer 0,2}` on global variable `x` is a range of layers from 0 to 2 indicating that `x` exists at all layers in this layer range.
+The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on which `Incr` exists.
+The annotation `{:refines "AtomicIncr"}` on `Incr` indicates that on layers greater than 0 a call to Incr is rewritten to a call to `AtomicIncr`.
+Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
 ```
 // Program at layer 0
 
@@ -219,8 +222,8 @@ procedure {:yields} Main()
   call IncrBy2();
 }
 ```
-The layer-0 program, shown above, contains only procedures.
-The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically the `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
+The layer-0 program, shown above, contains only procedures and no atomic actions.
+The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
 ```
 // Program at layer 1
 
@@ -262,7 +265,7 @@ The justification for this rewrite is that `IncrBy2` refines `AtomicIncrBy2`.
 
 In CIVL's model of the semantics of a concurrent program, a context switch is allowed only at entry or exit from a procedure or at an explicit `yield` statement.
 In particular, a context switch is not introduced just before or just after executing an atomic action.
-In the progression from the layer-0 program to the layer-2 program, the set of program locations where context switches may happen progressively reduces, thereby leading to simplified reasoning at the higher layer.
+In going from the layer-0 program to the layer-2 program, the set of program locations where context switches may happen progressively reduces, thereby leading to simplified reasoning at the higher layer.
 
 # Tackling interference
 
@@ -291,7 +294,7 @@ procedure {:yields} {:layer 1} q()
   call Incr(3);
 }
 
-procedure {:atomic} {:layer 1,1} AtomicIncr(val: int)
+procedure {:atomic} {:layer 1} AtomicIncr(val: int)
 modifies x;
 {
   x := x + val;
@@ -305,45 +308,20 @@ Accesses to `x` are encapsulated in the atomic action `AtomicIncr`,
 which increments `x` by the amount supplied in the parameter `val`.
 `AtomicIncr` is refined by the procedure `Incr`, whose implementation
 is not provided.
-The `{:layer 0}` annotation on `Incr` indicates that `Incr` does not exist on layers greater than 0.
-CIVL automatically rewrites a call to `Incr` to a call to `AtomicIncr` at layer 1.
-In CIVL, each layer is verified separately as an ordinary concurrent program.
-For example, verification of layer 1 of the program above is conceptually equivalent to verifying the following program.
-```
-var x:int;
-
-procedure {:yields} p()
-requires x >= 5;
-ensures x >= 8;
-{
-  call AtomicIncr(1);
-  yield; assert x >= 6;
-  call AtomicIncr(1);
-  yield; assert x >= 7;
-  call AtomicIncr(1);
-}
-
-procedure {:yields} q()
-{
-  call AtomicIncr(3);
-}
-
-procedure {:atomic} AtomicIncr(val: int)
-modifies x;
-{
-  x := x + val;
-}
-```
 The `yield` statement indicates that the executing thread may be suspended to allow another concurrently-executing thread to run.
 A `yield` statement may be optionally followed by a sequence of assert statements that collectively form the location invariant for the location of the yield statement.
 The `requires` annotations provide the location invariant for the implicit yield at procedure entry.
 Similarly, the `ensures` annotations provide the location invariant for the implicit yield at procedure exit.
 
-CIVL checks that a location invariant at a yiel is established by the thread when control arrives at the yield.
+Each location invariant in the program above has a layer annotation `{:layer 1}`.
+This annotation indicates that the location invariant is applicable to the concurrent program at layer 1.
+To allow for the same location invariant to be reused across different layers, CIVL allows the layer annotation on a location invariant to have a list of layers, e.g. `{:layer 1,3,5}`.
+The verification goal in the program above is to establish that all location invariants at layer 0 hold.
+
+CIVL checks that a location invariant at a yield is established by the thread when control arrives at the yield.
 CIVL also checks that each location invariant is preserved by any yield-to-yield code fragment in any procedure.
 Together, these checks guarantee that it is safe to assume the location invariant when the thread resumes execution after the yield statement.
 All specifications in the program above are verified.
-
 
 The next code snippet shows how to rewrite procedure `p` using yield invariants.
 It also introduces `yield_preserves` and `yield_loop`.
