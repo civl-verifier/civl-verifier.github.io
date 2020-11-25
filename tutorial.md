@@ -181,14 +181,14 @@ Understanding this foundational aspect of CIVL will make it easier to understand
 ```
 var {:layer 0,2} x: int;
 
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr();
-procedure {:left} {:layer 1} AtomicIncr()
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:left} {:layer 1} AtomicIncr(val: int)
 modifies x;
-{ x := x + 1; }
+{ x := x + val; }
 
 procedure {:yields} {:layer 1} {:refines "AtomicIncrBy2"} IncrBy2()
 {
-  par Incr() | Incr();
+  par Incr(1) | Incr(1);
 }
 procedure {:layer 2} {:atomic} AtomicIncrBy2()
 modifies x;
@@ -210,11 +210,11 @@ Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `
 
 var x: int;
 
-procedure {:yields} Incr();
+procedure {:yields} Incr(val: int);
 
 procedure {:yields} IncrBy2()
 {
-  par Incr() | Incr();
+  par Incr(1) | Incr(1);
 }
 
 procedure {:yields} Main()
@@ -229,14 +229,14 @@ The implementation of procedure `Incr` is not provided but it is known from the 
 
 var x: int;
 
-procedure AtomicIncr()
+procedure AtomicIncr(val: int)
 modifies x;
-{ x := x + 1; }
+{ x := x + val; }
 
 procedure {:yields} IncrBy2()
 {
-  call AtomicIncr();
-  call AtomicIncr();
+  call AtomicIncr(1);
+  call AtomicIncr(1);
 }
 
 procedure {:yields} Main()
@@ -246,6 +246,7 @@ procedure {:yields} Main()
 ```
 In the layer-1 program, shown above, the parallel call to `Incr` is rewritten to a sequence of calls to `AtomicIncr`.
 The justification for this rewrite is that `Incr` refines `AtomicIncr` and `AtomicIncr` is a left mover.
+Explanation for these concepts is presented later.
 ```
 // Program at layer 2
 
@@ -278,6 +279,11 @@ the simplest specification idiom addressing interference.
 ```
 var {:layer 0,1} x:int;
 
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:atomic} {:layer 1} AtomicIncr(val: int)
+modifies x;
+{ x := x + val; }
+
 procedure {:yields} {:layer 1} p()
 requires {:layer 1} x >= 5;
 ensures  {:layer 1} x >= 8;
@@ -293,14 +299,6 @@ procedure {:yields} {:layer 1} q()
 {
   call Incr(3);
 }
-
-procedure {:atomic} {:layer 1} AtomicIncr(val: int)
-modifies x;
-{
-  x := x + val;
-}
-
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
 ```
 The program above has two yielding procedures, `p` and `q`, each
 accessing the shared variable `x`.
@@ -328,6 +326,13 @@ A yield invariant is a specification idiom that allows the programmer to factor 
 
 The code below is a variation of the previous example where `p` has been rewritten to use a yield invariant and `q` has been generalized to invoke `Incr` in a nondeterministic loop.
 ```
+var {:layer 0,1} x:int;
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:atomic} {:layer 1} AtomicIncr(val: int)
+modifies x;
+{ x := x + val; }
+
 procedure {:yield_invariant} {:layer 1} yield_x(n: int);
 requires x >= n;
 
@@ -369,9 +374,18 @@ Procedure `q` uses the annotation `{:yield_preserves "yield_x", old(x)}` which i
 Procedure `q` also uses `{:yield_loop "yield_x", old(x)}` to supply the noninterference condition at the implicit yield at the head of the loop in `q`.
 
 # Mover types
-The next code snippet explains movers.
-
+The following code illustrates mover types for atomic actions.
 ```
+var {:layer 0,1} x:int;
+
+procedure {:yield_invariant} {:layer 1} yield_x(n: int);
+requires x >= n;
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:both} {:layer 1} AtomicIncr(val: int)
+modifies x;
+{ x := x + val; }
+
 procedure {:yields} {:layer 1}
 {:yield_requires "yield_x", 5}
 {:yield_ensures "yield_x", 8}
@@ -381,40 +395,43 @@ p()
   call Incr(1);
   call Incr(1);
 }
-
-procedure {:both} {:layer 1,1} AtomicIncr(val: int)
-modifies x;
-{
-  x := x + val;
-}
 ```
+The atomic action `AtomicIncr` is labeled with the mover type `both` indicating that it is both a left mover and a right mover.
+Consequently, the calls to `Incr` in `p` do not have to be separated by a yield.
+The calls to `Incr` in `p` commute around atomic actions executed by other threads so that they all appear to execute together.
+The use of mover types leads to fewer yields and more efficient verification of the body of `p`.
 
-The next code snippet explains that abstraction can lead to a more precise mover type.
-
+Often, a program may use atomic actions that are neither right nor left mover and hence cannot be commuted across actions performed by other threads.
+But it may be possible to create abstractions of the program's atomic actions so that important actions achieve a commuting mover type.
 ```
-type {:linear "tid"} X;
+var {:layer 0,2} x:int;
 
-var {:layer 0,2} x: int;
-
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr();
-
-procedure {:atomic} {:layer 1,2} AtomicIncr()
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:atomic} {:layer 1} AtomicIncr(val: int)
 modifies x;
-{ x := x + 1; }
+{ x := x + val; }
 
 procedure {:yields} {:layer 0} {:refines "AtomicRead"} Read() returns (v: int);
-
 procedure {:atomic} {:layer 1} AtomicRead() returns (v: int)
 { v := x; }
+
+procedure {:yields} {:layer 1} {:refines "AbstractAtomicIncr"} _Incr(val: int)
+{
+  call Incr(val);
+}
+procedure {:right} {:layer 2} AbstractAtomicIncr(val: int)
+{ assert 0 <= val; x := x + val; }
 
 procedure {:yields} {:layer 1} {:refines "AbstractAtomicRead"} _Read() returns (v: int)
 {
   call Read();
 }
-
 procedure {:left} {:layer 2} AbstractAtomicRead() returns (v: int)
-{ assume v <= x; }
+{ assume x <= v; }
 ```
+In the code above, atomic actions `AtomicIncr` and `AtomicRead` at layer 1 are neither right nor left movers.
+At layer 2, we create abstractions `AbstractAtomicIncr` and `AbstractAtomicRead` of `AtomicIncr` and `AtomicRead` respectively.
+The abstractions are chosen so that `AbstractAtomicIncr` is a right mover and `AbstractAtomicRead` is a left mover.
 
 # Linear Typing and Permissions
 The next code snippet explains permissions by explaining their use in
@@ -493,7 +510,7 @@ modifies barrierCounter, mutatorsInBarrier;
 }
 ```
 
-# Tackling asynchony
+# Tackling asynchrony
 
 The next code snippet shows how to summarizing asynchronous calls directly without using pending asyncs.
 

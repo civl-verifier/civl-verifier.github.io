@@ -4,7 +4,7 @@ CIVL is a verifier for concurrent programs following two core design principles.
   across multiple layers of refinement, where each refinement step corresponds
   to a small simplifying program transformation. Proof construction becomes more
   productive by decomposing the problem into small, manageable, and automatable
-  pieces, and the resulting proofs become simpler and easier to reuse.
+  pieces. The resulting proofs become simpler and easier to reuse.
 
 * **Structured Programs** (instead of transition systems): Each layer of
   abstraction (from low-level implementations to high-level specifications) is
@@ -14,14 +14,14 @@ CIVL is a verifier for concurrent programs following two core design principles.
   are compactly expressed together as a single syntactic unit in a
   *[layered concurrent program](https://doi.org/10.1007/978-3-319-96145-3_5)*.
 
-CIVL supports a unique blend of established verification techniques for
+CIVL supports established verification techniques for
 concurrent programs, including
 *stepwise-refinement*,
 *[gated atomic actions](https://doi.org/10.1145/1480881.1480885)*,
 *[mover types](https://doi.org/10.1145/781131.781169)* (à la Lipton's reduction),
 *inductive invariants* (noninterference reasoning à la Owicki-Gries and rely-guarantee),
 and *linear permissions*.
-Furthermore, it is the driver and testbed for cutting-edge research on novel
+It also incorporates newer
 verification techniques and methodologies, like
 *[yield invariants](https://doi.org/10.1007/978-3-030-53288-8_14)*,
 *[inductive sequentialization](https://doi.org/10.1145/3385412.3385980)*,
@@ -73,9 +73,9 @@ distributed protocols
 [Chang-Roberts](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/ChangRoberts.bpl)),
 and many more.
 
-## [Tutorial (under construction)](tutorial)
+## [Documentation (under construction)](tutorial)
 
-Until the CIVL tutorial becomes available, we recommend to have a look at simple
+We also recommend looking at simple
 examples from our [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl),
 like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 
@@ -108,4 +108,4 @@ like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 * [Bernhard Kragl (IST Austria)](https://bkragl.github.io)
 * [Shaz Qadeer (Novi)](https://scholar.google.com/citations?user=EqIVfYcAAAAJ&hl=en)
 
-If you are interested in CIVL, please get in touch! We are happy to give talks, lectures, and demos.
+If you are interested in CIVL, please get in touch!
