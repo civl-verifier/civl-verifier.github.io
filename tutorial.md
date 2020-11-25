@@ -434,41 +434,47 @@ At layer 2, we create abstractions `AbstractAtomicIncr` and `AbstractAtomicRead`
 The abstractions are chosen so that `AbstractAtomicIncr` is a right mover and `AbstractAtomicRead` is a left mover.
 
 # Linear Typing and Permissions
-The next code snippet explains permissions by explaining their use in
-proving mover types for `AtomicRead` and `AtomicWrite`.
-
+CIVL exploits linear typing to automatically inject logical assumptions when proving that a location or yield invariant is inteference-free or two actions commute with each other.
 ```
-type {:linear "tid"} Tid;
+type {:linear "X"} Tid;
 var {:layer 0,1} a:[Tid]int;
 
-procedure {:yields} {:layer 1}
-Incr({:linear "tid"} tid: int)
-{
-  var t:int;
-
-  call t := Read(tid, i);
-  call Write(tid, i, t + 1);
-}
-
-procedure {:both} {:layer 1,1}
-AtomicRead({:linear "tid"} tid: int, i: int) returns (val: int)
+procedure {:yields} {:layer 0} {:refines "AtomicRead"}
+Read({:linear "X"} tid: Tid, i: int) returns (val: int);
+procedure {:both} {:layer 1}
+AtomicRead({:linear "X"} tid: Tid, i: int) returns (val: int)
 {
   val := a[tid];
 }
 
-procedure {:yields} {:layer 0} {:refines "AtomicRead"}
-Read({:linear "tid"} tid: int, i: int) returns (val: int);
-
-procedure {:both} {:layer 1,1}
-AtomicWrite({:linear "tid"} tid: int, i: int, val: int)
+procedure {:yields} {:layer 0} {:refines "AtomicWrite"}
+Write({:linear "X"} tid: Tid, i: int, val: int);
+procedure {:both} {:layer 1}
+AtomicWrite({:linear "X"} tid: Tid, i: int, val: int)
 modifies a;
 {
   a[tid] := val;
 }
 
-procedure {:yields} {:layer 0} {:refines "AtomicWrite"}
-Write({:linear "tid"} tid: int, i: int, val: int);
+procedure {:yields} {:layer 1} YieldInv({:linear "X"} tid: Tid, v: int);
+requires a[tid] == v;
 ```
+In the program above, the declaration of type `Tid` has the annotation `{:linear "X"}`.
+This annotation indicates that values of type `Tid` are permissions that must be distributed among the variables of the program without duplication.
+As the program executes, the permissions stored in the program variables may be redistributed but not duplicated, a condition that is verified by CIVL.
+These permissions are associated with a domain called "X"; disjointness is enforced within a domain but not across domains.
+Different domains may use the same permission type.
+For example, if `Tid` is the permission type for a domain `Y` also, then we would use the declaration `type {:linear "X", "Y"} Tid;`.
+
+It is not required for all variables of type `Tid` to contain permissions.
+To indicate that a variable contains permissions for domain `X`, it must have the annotation `{:linear "X"}`.
+The parameter `tid` of atomic action `AtomicRead` contains permissions.
+So does the parameter `tid` of `AtomicWrite`.
+Consequently, if a thread is executing `AtomicRead(tid1, i1)` and another is executing `AtomicWrite(tid2, i2, val2)`, `tid1` and `tid2` must be distinct from each other.
+This assumption is used to prove that `AtomicRead` and `AtomicWrite` are both movers.
+
+Permissions are useful also for proving interference-freedom for location and yield invariants.
+The yield invariant `YieldInv` is proved interference-free against any yield-to-yield code fragment that mutates `a` using `AtomicWrite`.
 
 Explain that there is a general and customizable notion of collector functions.
 The next code snippet explains collectors.
