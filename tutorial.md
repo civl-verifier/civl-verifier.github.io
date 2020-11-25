@@ -173,7 +173,7 @@ ensures card(set[x := true]) == card(set) + 1;
 The lemma procedure `Lemma_add_to_set` states the fact about set cardinality,
 that adding an element to a set increases the sets cardinality by one.
 
-# Layered concurrent programs
+# Layered Concurrent Programs
 
 CIVL verifies a layered concurrent program by verifying each layer separately.
 We show an example to explain how a layered program represents a sequence of increasingly simpler concurrent programs.
@@ -267,7 +267,7 @@ In CIVL's model of the semantics of a concurrent program, a context switch is al
 In particular, a context switch is not introduced just before or just after executing an atomic action.
 In going from the layer-0 program to the layer-2 program, the set of program locations where context switches may happen progressively reduces, thereby leading to simplified reasoning at the higher layer.
 
-# Tackling interference
+# Location and Yield Invariants
 
 Reasoning about concurrent programs is difficult because of the
 possibility of interference among concurrently-executing procedures.
@@ -323,9 +323,10 @@ CIVL also checks that each location invariant is preserved by any yield-to-yield
 Together, these checks guarantee that it is safe to assume the location invariant when the thread resumes execution after the yield statement.
 All specifications in the program above are verified.
 
-The next code snippet shows how to rewrite procedure `p` using yield invariants.
-It also introduces `yield_preserves` and `yield_loop`.
+Location invariants are useful but could be verbose due to repetition of similar logical facts at various control locations.
+A yield invariant is a specification idiom that allows the programmer to factor out similar noninterference specifications into a single named and parameterized specification.
 
+The code below is a variation of the previous example where `p` has been rewritten to use a yield invariant and `q` has been generalized to invoke `Incr` in a nondeterministic loop.
 ```
 procedure {:yield_invariant} {:layer 1} yield_x(n: int);
 requires x >= n;
@@ -353,7 +354,21 @@ q()
   }
 }
 ```
+The yield invariant `yield_x` is parameterized by `n` and states that the global variable `x` is no smaller than `n`.
+To use `yield_x`, the caller must supply an argument for the parameter `n`.
+There are six invocations of `yield_x` in the program, 4 in `p` and 2 in `q`.
+Let us first understand how `p` uses `yield_x`.
 
+Procedure `p` invokes `yield_x` at entry using the annotation `{:yield_requires "yield_x", old(x)}` indicating that `old(x)` is passed for parameter `n`.
+The expression `old(x)` refers to the value of `x` just before `p` is invoked.
+The caller of `p` must ensure that `yield_x(old(x))` holds at entry to `p`, which is trivial given the meaning of `old(x)`.
+Procedure `p` also invokes `yield_x` at exit using the annotation `{:yield_ensures "yield_x", old(x)+3}`, guaranteeing that `yield_x(old(x) + 3)` must hold at exit from `p`.
+In the implementation of `p`, invocations of `yield_x` replace location invariants in the previous version.
+
+Procedure `q` uses the annotation `{:yield_preserves "yield_x", old(x)}` which is a shorthand for a pair of annotations `{:yield_requires "yield_x", old(x)}` and `{:yield_ensures "yield_x", old(x)}`.
+Procedure `q` also uses `{:yield_loop "yield_x", old(x)}` to supply the noninterference condition at the implicit yield at the head of the loop in `q`.
+
+# Mover types
 The next code snippet explains movers.
 
 ```
@@ -374,6 +389,34 @@ modifies x;
 }
 ```
 
+The next code snippet explains that abstraction can lead to a more precise mover type.
+
+```
+type {:linear "tid"} X;
+
+var {:layer 0,2} x: int;
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr();
+
+procedure {:atomic} {:layer 1,2} AtomicIncr()
+modifies x;
+{ x := x + 1; }
+
+procedure {:yields} {:layer 0} {:refines "AtomicRead"} Read() returns (v: int);
+
+procedure {:atomic} {:layer 1} AtomicRead() returns (v: int)
+{ v := x; }
+
+procedure {:yields} {:layer 1} {:refines "AbstractAtomicRead"} _Read() returns (v: int)
+{
+  call Read();
+}
+
+procedure {:left} {:layer 2} AbstractAtomicRead() returns (v: int)
+{ assume v <= x; }
+```
+
+# Linear Typing and Permissions
 The next code snippet explains permissions by explaining their use in
 proving mover types for `AtomicRead` and `AtomicWrite`.
 
@@ -448,35 +491,6 @@ modifies barrierCounter, mutatorsInBarrier;
     mutatorsInBarrier[i] := false;
     barrierCounter := barrierCounter + 1;
 }
-```
-
-# Abstraction and reduction are symbiotic
-
-The next code snippet explains that abstraction can lead to a more precise mover type.
-
-```
-type {:linear "tid"} X;
-
-var {:layer 0,2} x: int;
-
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr();
-
-procedure {:atomic} {:layer 1,2} AtomicIncr()
-modifies x;
-{ x := x + 1; }
-
-procedure {:yields} {:layer 0} {:refines "AtomicRead"} Read() returns (v: int);
-
-procedure {:atomic} {:layer 1} AtomicRead() returns (v: int)
-{ v := x; }
-
-procedure {:yields} {:layer 1} {:refines "AbstractAtomicRead"} _Read() returns (v: int)
-{
-  call Read();
-}
-
-procedure {:left} {:layer 2} AbstractAtomicRead() returns (v: int)
-{ assume v <= x; }
 ```
 
 # Tackling asynchony
