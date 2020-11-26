@@ -15,7 +15,7 @@ they are expressed using attributes.
 
 Types, functions, and constants are declared just as in Boogie.
 
-## Global / Shared Variables
+## Global Variables
 
 Global variables have a *layer range*.
 
@@ -178,6 +178,7 @@ that adding an element to a set increases the sets cardinality by one.
 CIVL verifies a layered concurrent program by verifying each layer separately.
 We show an example to explain how a layered program represents a sequence of increasingly simpler concurrent programs.
 Understanding this foundational aspect of CIVL will make it easier to understand everything explained later.
+
 ```
 var {:layer 0,2} x: int;
 
@@ -199,6 +200,7 @@ procedure {:yields} {:layer 2} Main()
   call IncrBy2();
 }
 ```
+
 The program above represents three concurrent programs, at layers 0, 1, and 2, that share parts of their code.
 Layer 0 is the most concrete and layer 2 is the most abstract.
 The annotation `{:layer 0,2}` on global variable `x` is a range of layers from 0 to 2 indicating that `x` exists at all layers in this layer range.
@@ -206,7 +208,8 @@ The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on w
 The annotation `{:refines "AtomicIncr"}` on `Incr` indicates that on layers greater than 0 a call to Incr is rewritten to a call to `AtomicIncr`.
 Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
 
-**Program at layer 0**
+## Program at layer 0
+
 ```
 var x: int;
 
@@ -222,10 +225,12 @@ procedure {:yields} Main()
   call IncrBy2();
 }
 ```
+
 The layer-0 program, shown above, contains only procedures and no atomic actions.
 The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
 
-**Program at layer 1**
+## Program at layer 1
+
 ```
 var x: int;
 
@@ -244,11 +249,13 @@ procedure {:yields} Main()
   call IncrBy2();
 }
 ```
+
 In the layer-1 program, shown above, the parallel call to `Incr` is rewritten to a sequence of calls to `AtomicIncr`.
 The justification for this rewrite is that `Incr` refines `AtomicIncr` and `AtomicIncr` is a left mover.
 Explanation for these concepts is presented later.
 
-**Program at layer 2**
+## Program at layer 2
+
 ```
 var x: int;
 
@@ -261,20 +268,21 @@ procedure {:yields} Main()
   call AtomicIncrBy2();
 }
 ```
+
 In the layer-2 program, shown above, the call to procedure `IncrBy2` in `Main` is rewritten to a call to atomic action `AtomicIncrBy2`.
 The justification for this rewrite is that `IncrBy2` refines `AtomicIncrBy2`.
 
-**Semantics**
+## Semantics
 
 In CIVL's model of the semantics of a concurrent program, a context switch is allowed only at entry or exit from a procedure or at an explicit `yield` statement.
 In particular, a context switch is not introduced just before or just after executing an atomic action.
 In going from the layer-0 program to the layer-2 program, the set of program locations where context switches may happen progressively reduces, thereby leading to simplified reasoning at the higher layer.
 
-**Yield-to-yield-fragments**
+## Yield-to-yield-fragments
 
 Explain decomposition of procedure paths into yield-to-yield fragments.
 
-**Refinement**
+## Refinement
 
 Explain how refinement is checked.
 
@@ -286,6 +294,7 @@ We now present the various features in CIVL targeted towards specifying
 and controlling interference.
 The following program introduces location invariants,
 the simplest specification idiom addressing interference.
+
 ```
 var {:layer 0,1} x:int;
 
@@ -310,8 +319,9 @@ procedure {:yields} {:layer 1} q()
   call Incr(3);
 }
 ```
+
 The program above has two yielding procedures, `p` and `q`, each
-accessing the shared variable `x`.
+accessing the global variable `x`.
 Accesses to `x` are encapsulated in the atomic action `AtomicIncr`,
 which increments `x` by the amount supplied in the parameter `val`.
 `AtomicIncr` is refined by the procedure `Incr`, whose implementation
@@ -335,6 +345,7 @@ Location invariants are useful but could be verbose due to repetition of similar
 A yield invariant is a specification idiom that allows the programmer to factor out similar noninterference specifications into a single named and parameterized specification.
 
 The code below is a variation of the previous example where `p` has been rewritten to use a yield invariant and `q` has been generalized to invoke `Incr` in a nondeterministic loop.
+
 ```
 var {:layer 0,1} x:int;
 
@@ -369,6 +380,7 @@ q()
   }
 }
 ```
+
 The yield invariant `yield_x` is parameterized by `n` and states that the global variable `x` is no smaller than `n`.
 To use `yield_x`, the caller must supply an argument for the parameter `n`.
 There are six invocations of `yield_x` in the program, 4 in `p` and 2 in `q`.
@@ -384,7 +396,9 @@ Procedure `q` uses the annotation `{:yield_preserves "yield_x", old(x)}` which i
 Procedure `q` also uses `{:yield_loop "yield_x", old(x)}` to supply the noninterference condition at the implicit yield at the head of the loop in `q`.
 
 # Mover types
+
 The following code illustrates mover types for atomic actions.
+
 ```
 var {:layer 0,1} x:int;
 
@@ -406,19 +420,21 @@ p()
   call Incr(1);
 }
 ```
+
 The atomic action `AtomicIncr` is labeled with the mover type `both` indicating that it is both a left mover and a right mover.
 Consequently, the calls to `Incr` in `p` do not have to be separated by a yield.
 The calls to `Incr` in `p` commute around atomic actions executed by other threads so that they all appear to execute together.
 The use of mover types leads to fewer yields and more efficient verification of the body of `p`.
 
-**Mover procedures**
+## Mover procedures
 
 Explain how mover procedures are summarized using mover types and preconditions/postconditions.
 
-**Abstraction aids commutativity**
+## Abstraction aids commutativity
 
 Often, a program may use atomic actions that are neither right nor left mover and hence cannot be commuted across actions performed by other threads.
 But it may be possible to create abstractions of the program's atomic actions so that important actions achieve a commuting mover type.
+
 ```
 var {:layer 0,2} x:int;
 
@@ -445,12 +461,15 @@ procedure {:yields} {:layer 1} {:refines "AbstractAtomicRead"} _Read() returns (
 procedure {:left} {:layer 2} AbstractAtomicRead() returns (v: int)
 { assume x <= v; }
 ```
+
 In the code above, atomic actions `AtomicIncr` and `AtomicRead` at layer 1 are neither right nor left movers.
 At layer 2, we create abstractions `AbstractAtomicIncr` and `AbstractAtomicRead` of `AtomicIncr` and `AtomicRead` respectively.
 The abstractions are chosen so that `AbstractAtomicIncr` is a right mover and `AbstractAtomicRead` is a left mover.
 
 # Linear Typing and Permissions
+
 CIVL exploits linear typing to automatically inject logical assumptions when proving that a location or yield invariant is inteference-free or two actions commute with each other.
+
 ```
 type {:linear "X"} Tid;
 var {:layer 0,1} a:[Tid]int;
@@ -475,6 +494,7 @@ modifies a;
 procedure {:yields} {:layer 1} YieldInv({:linear "X"} tid: Tid, v: int);
 requires a[tid] == v;
 ```
+
 In the program above, the declaration of type `Tid` has the annotation `{:linear "X"}`.
 This annotation indicates that values of type `Tid` are permissions that must be distributed among the variables of the program without duplication.
 As the program executes, the permissions stored in the program variables may be redistributed but not duplicated, a condition that is verified by CIVL.
@@ -492,10 +512,11 @@ This assumption is used to prove that `AtomicRead` and `AtomicWrite` are both mo
 Permissions are useful also for proving interference-freedom for location and yield invariants.
 The yield invariant `YieldInv` is proved interference-free against any yield-to-yield code fragment that mutates `a` using `AtomicWrite`.
 
-**Permission collectors**
+## Permission collectors
 
 In some programs, it is helpful to make a distinction between the value stored in a variable and the permission associated with it.
 This increase in expressiveness is achieved by using a collector function from the type of the variable to the type of permissions.
+
 ```
 type {:linear "perm"} {:datatype} Perm;
 function {:constructor} Left(i: int): Perm;
@@ -532,6 +553,7 @@ modifies barrierCounter, mutatorsInBarrier;
     barrierCounter := barrierCounter + 1;
 }
 ```
+
 In the program above, the type `Perm` is a datatype with two constructors, `Left` and `Right`.
 `Perm` is the permission type for domain `perm`.
 The program variable that contain permissions in `Perm` are of type `int` and `[int]bool`.
@@ -541,6 +563,7 @@ The former collects permissions for a variable of type `int` and the latter coll
 The return type of each of these functions is `[Perm]bool`, representing a set of `Perm` values.
 There are two implicitly-defined and auto-generated collector functions for each permission type.
 These two collectors for the `Perm` type are shown below.
+
 ```
 function PermCollector(x: Perm) : [Perm]bool {
   MapConst(false)[x := true]
@@ -549,10 +572,11 @@ function PermSetCollector(xs: [Perm]bool) : [Perm]bool {
   xs
 }
 ```
+
 Permissions obtained by applying the collector function of the appropriate type to program variables continue to be distributed without being duplicated.
 The enforced invariant states that permissions obtained from two distinct variables are disjoint.
 
-**Permission redistribution**
+## Permission redistribution
 
 Explain dataflow analysis aided by `linear_in` and `linear_out` annotations.
 
