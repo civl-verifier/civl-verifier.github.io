@@ -278,7 +278,7 @@ In CIVL's model of the semantics of a concurrent program, a context switch is al
 In particular, a context switch is not introduced just before or just after executing an atomic action.
 In going from the layer-0 program to the layer-2 program, the set of program locations where context switches may happen progressively reduces, thereby leading to simplified reasoning at the higher layer.
 
-## Yield-to-yield-fragments
+## Yield-to-yield fragments
 
 Explain decomposition of procedure paths into yield-to-yield fragments.
 
@@ -286,7 +286,7 @@ Explain decomposition of procedure paths into yield-to-yield fragments.
 
 Explain how refinement is checked.
 
-# Location and Yield Invariants
+# Location Invariants
 
 Reasoning about concurrent programs is difficult because of the
 possibility of interference among concurrently-executing procedures.
@@ -340,6 +340,8 @@ CIVL checks that a location invariant at a yield is established by the thread wh
 CIVL also checks that each location invariant is preserved by any yield-to-yield code fragment in any procedure.
 Together, these checks guarantee that it is safe to assume the location invariant when the thread resumes execution after the yield statement.
 All specifications in the program above are verified.
+
+# Yield Invariants
 
 Location invariants are useful but could be verbose due to repetition of similar logical facts at various control locations.
 A yield invariant is a specification idiom that allows the programmer to factor out similar noninterference specifications into a single named and parameterized specification.
@@ -429,6 +431,34 @@ The use of mover types leads to fewer yields and more efficient verification of 
 ## Mover procedures
 
 Explain how mover procedures are summarized using mover types and preconditions/postconditions.
+
+```
+var {:layer 0,2} x : int;
+
+procedure {:yields} {:layer 1} {:refines "atomic_inc_x"} main (n: int)
+requires {:layer 1} n >= 0;
+{
+  call inc(n);
+}
+
+procedure {:yields} {:left} {:layer 1} {:terminates}  inc (i : int)
+modifies x;
+requires {:layer 1} i >= 0;
+ensures {:layer 1} x == old(x) + i;
+{
+  if (i > 0)
+  {
+    call inc_x(1);
+    async call {:sync} inc(i-1);
+  }
+}
+
+procedure {:both} {:layer 1,2} atomic_inc_x (n: int)
+modifies x;
+{ x := x + n; }
+
+procedure {:yields} {:layer 0} {:refines "atomic_inc_x"} inc_x (n: int);
+```
 
 ## Abstraction aids commutativity
 
@@ -582,37 +612,7 @@ Explain dataflow analysis aided by `linear_in` and `linear_out` annotations.
 
 Explain how atomic actions are verified to make sure permissions are not duplicated.
 
-# Tackling asynchrony
-
-The next code snippet shows how to summarizing asynchronous calls directly without using pending asyncs.
-
-```
-var {:layer 0,2} x : int;
-
-procedure {:yields} {:layer 1} {:refines "atomic_inc_x"} main (n: int)
-requires {:layer 1} n >= 0;
-{
-  call inc(n);
-}
-
-procedure {:yields} {:left} {:layer 1} {:terminates}  inc (i : int)
-modifies x;
-requires {:layer 1} i >= 0;
-ensures {:layer 1} x == old(x) + i;
-{
-  if (i > 0)
-  {
-    call inc_x(1);
-    async call {:sync} inc(i-1);
-  }
-}
-
-procedure {:both} {:layer 1,2} atomic_inc_x (n: int)
-modifies x;
-{ x := x + n; }
-
-procedure {:yields} {:layer 0} {:refines "atomic_inc_x"} inc_x (n: int);
-```
+# Pending asyncs
 
 * Summarizing asynchronous calls using pending asyncs
 * Eliminating pending asyncs
