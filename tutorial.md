@@ -295,8 +295,6 @@ The visible state for `IncrBy2` includes only the global variable `x`. In genera
 
 Reasoning about concurrent programs is difficult because of the
 possibility of interference among concurrently-executing procedures.
-We now present the various features in CIVL targeted towards specifying
-and controlling interference.
 The following program introduces location invariants,
 the simplest specification idiom addressing interference.
 
@@ -636,7 +634,7 @@ This annotation indicates that the actual input variable corresponding to `i` at
 Finally, the annotation `{:linear "perm"}` on an input parameter, although not used in the program above, would indicate that the
 correspoding actual input variable at the call site must be available before the call and remains available after the call.
 
-# Introducing and hiding computation
+# Introducing and hiding variables
 
 Explain introduction actions and introduction and hiding of global and local variables using the second example from the CAV 2020 paper.
 
