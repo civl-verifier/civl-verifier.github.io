@@ -278,13 +278,21 @@ In CIVL's model of the semantics of a concurrent program, a context switch is al
 In particular, a context switch is not introduced just before or just after executing an atomic action.
 In going from the layer-0 program to the layer-2 program, the set of program locations where context switches may happen progressively reduces, thereby leading to simplified reasoning at the higher layer.
 
-## Yield-to-yield fragments
+A program location where a context switch may happen is called a yield location.
+Any execution path in a procedure from its entry to exit is
+partitioned into a sequence of execution fragments from a yield location to the next.
+Each such execution fragment is called a yield-to-yield fragment.
 
-Explain decomposition of procedure paths into yield-to-yield fragments.
+## Refinement checking
 
-## Refinement
+We now explain how the annotation `{:refines "AtomicIncrBy2"}` is checked on the implementation of the procedure `IncrBy2`.
+This refinement checking justifies the transformation of the layer-1 program to the layer-2 program.
+CIVL checks that along each execution path in `IncrBy2` from entry to exit, there is exactly one yield-to-yield fragment that behaves like `AtomicIncrBy2`.
+All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
+The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
 
-Explain how refinement is checked.
+## Introducing and hiding computation
+
 
 # Location Invariants
 
@@ -430,18 +438,12 @@ The use of mover types leads to fewer yields and more efficient verification of 
 
 ## Mover procedures
 
-Explain how mover procedures are summarized using mover types and preconditions/postconditions.
+Mover types are applicable to procedures in addition to atomic actions.
 
 ```
 var {:layer 0,2} x : int;
 
-procedure {:yields} {:layer 1} {:refines "atomic_inc_x"} main (n: int)
-requires {:layer 1} n >= 0;
-{
-  call inc(n);
-}
-
-procedure {:yields} {:left} {:layer 1} {:terminates}  inc (i : int)
+procedure {:yields} {:left} {:layer 1} {:terminates} inc(i : int)
 modifies x;
 requires {:layer 1} i >= 0;
 ensures {:layer 1} x == old(x) + i;
@@ -449,16 +451,28 @@ ensures {:layer 1} x == old(x) + i;
   if (i > 0)
   {
     call inc_x(1);
-    async call {:sync} inc(i-1);
+    if (*) {
+      call inc(i-1);
+    } else {
+      async call {:sync} inc(i-1);
+    }
   }
 }
 
-procedure {:both} {:layer 1,2} atomic_inc_x (n: int)
+procedure {:yields} {:layer 0} {:refines "atomic_inc_x"} inc_x(n: int);
+procedure {:both} {:layer 1} atomic_inc_x(n: int)
 modifies x;
 { x := x + n; }
-
-procedure {:yields} {:layer 0} {:refines "atomic_inc_x"} inc_x (n: int);
 ```
+
+In the program above, procedure `inc` is annotated with `{:left}`.
+This annotation is applicable to `inc` only at its disappearing layer 1
+This annotation indicates that at layer 1 any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
+
+If a mover procedure is a left mover then both synchronous and asynchronous calls to it can be summarized at its disappearing layer.
+For example, the body of `inc` contains both a synchronous and asynchronous call to itself.
+Both calls are treated identically because of the `{:left}` annotation on `inc`.
+The `{:sync}` annotation on the asynchronous call to `inc` indicates to CIVL that the call should be synchronized and summarized.
 
 ## Abstraction aids commutativity
 
