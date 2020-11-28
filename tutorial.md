@@ -291,9 +291,6 @@ CIVL checks that along each execution path in `IncrBy2` from entry to exit, ther
 All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
 The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
 
-## Introducing and hiding computation
-
-
 # Location Invariants
 
 Reasoning about concurrent programs is difficult because of the
@@ -622,9 +619,26 @@ The enforced invariant states that permissions obtained from two distinct variab
 
 ## Permission redistribution
 
-Explain dataflow analysis aided by `linear_in` and `linear_out` annotations.
+A variable that is annotated with `{:linear "D"}` for any domain `D` is a linear variable.
+Permissions are stored in a subset of the program's linear variables and may be redistributed among them as the program executes.
+CIVL performs a dataflow analysis to compute at each program location a set of available variables such that permissions in these variables are guaranteed to be disjoint.
+The set of available variables at a program location contains every global linear variable but may contain only a subset of the local linear variables in scope.
 
-Explain how atomic actions are verified to make sure permissions are not duplicated.
+Consider the atomic action `AtomicEnterBarrier` in the program above.
+Input `i` of this action is annotated `{:linear_in "perm"}` indicating that the actual input variable corresponding to `i` at the call site must be available before the call and becomes unavailable after the call.
+Output `p` is annotated `{:linear "perm"}` indicating that the actual output variable corresponding to `p` at the call site becomes available after the call.
+The code of `AtomicEnterBarrier` redistributes the permissions stored in global variable `mutatorsInBarrier` and the input `i` among `mutatorsInBarrier` and output `p`.
+CIVL checks that this redistribution does not cause duplication.
+
+The atomic action `AtomicWaitForBarrierRelease` has an input `i` annotated `{:linear_out "perm"}`.
+This annotation indicates that the actual input variable corresponding to `i` at the call site will become available after the call.
+
+Finally, the annotation `{:linear "perm"}` on an input parameter, although not used in the program above, would indicate that the
+correspoding actual input variable at the call site must be available before the call and remains available after the call.
+
+# Introducing and hiding computation
+
+Explain introduction actions and introduction and hiding of global and local variables using the second example from the CAV 2020 paper.
 
 # Pending asyncs
 
