@@ -205,7 +205,7 @@ The program above represents three concurrent programs, at layers 0, 1, and 2, t
 Layer 0 is the most concrete and layer 2 is the most abstract.
 The annotation `{:layer 0,2}` on global variable `x` is a range of layers from 0 to 2 indicating that `x` exists at all layers in this layer range.
 The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on which `Incr` exists.
-The annotation `{:refines "AtomicIncr"}` on `Incr` indicates that on layers greater than 0 a call to Incr is rewritten to a call to `AtomicIncr`.
+The annotation `{:refines "AtomicIncr"}` on `Incr` indicates that on layers greater than 0 a call to `Incr` is rewritten to a call to `AtomicIncr`.
 Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
 
 ## Program at layer 0
@@ -227,7 +227,7 @@ procedure {:yields} Main()
 ```
 
 The layer-0 program, shown above, contains only procedures and no atomic actions.
-The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
+The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically the `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
 
 ## Program at layer 1
 
@@ -281,7 +281,7 @@ In going from the layer-0 program to the layer-2 program, the set of program loc
 A program location where a context switch may happen is called a yield location.
 Any execution path in a procedure from its entry to exit is
 partitioned into a sequence of execution fragments from a yield location to the next.
-Each such execution fragment is called a yield-to-yield fragment.
+Each such execution fragment is called a *yield-to-yield fragment*.
 
 ## Refinement checking
 
@@ -329,18 +329,19 @@ Accesses to `x` are encapsulated in the atomic action `AtomicIncr`,
 which increments `x` by the amount supplied in the parameter `val`.
 `AtomicIncr` is refined by the procedure `Incr`, whose implementation
 is not provided.
-The `yield` statement indicates that the executing thread may be suspended to allow another concurrently-executing thread to run.
-A `yield` statement may be optionally followed by a sequence of assert statements that collectively form the location invariant for the location of the yield statement.
+
+A `yield` statement indicates that the executing thread may be suspended to allow another concurrently-executing thread to run.
+A `yield` statement may be followed by a sequence of `assert` statements that collectively form the location invariant for the location of the `yield` statement.
 The `requires` annotations provide the location invariant for the implicit yield at procedure entry.
 Similarly, the `ensures` annotations provide the location invariant for the implicit yield at procedure exit.
 
 Each location invariant in the program above has a layer annotation `{:layer 1}`.
 This annotation indicates that the location invariant is applicable to the concurrent program at layer 1.
-To allow for the same location invariant to be reused across different layers, CIVL allows the layer annotation on a location invariant to have a list of layers, e.g. `{:layer 1,3,5}`.
-The verification goal in the program above is to establish that all location invariants at layer 0 hold.
+To allow for the same location invariant to be reused across different layers, the layer annotation on a location invariant can be a list of layers, e.g. `{:layer 1,3,5}`.
+The verification goal in the program above is to establish that all location invariants at layer 1 hold.
 
 CIVL checks that a location invariant at a yield is established by the thread when control arrives at the yield.
-CIVL also checks that each location invariant is preserved by any yield-to-yield code fragment in any procedure.
+CIVL also checks that each location invariant is preserved by all yield-to-yield fragments in all procedures.
 Together, these checks guarantee that it is safe to assume the location invariant when the thread resumes execution after the yield statement.
 All specifications in the program above are verified.
 
@@ -428,7 +429,7 @@ p()
 
 The atomic action `AtomicIncr` is labeled with the mover type `both` indicating that it is both a left mover and a right mover.
 Consequently, the calls to `Incr` in `p` do not have to be separated by a yield.
-The calls to `Incr` in `p` commute around atomic actions executed by other threads so that they all appear to execute together.
+The calls to `Incr` in `p` commute with atomic actions executed by other threads so that they all appear to execute together.
 The use of mover types leads to fewer yields and more efficient verification of the body of `p`.
 
 ## Mover procedures
@@ -461,8 +462,8 @@ modifies x;
 ```
 
 In the program above, procedure `inc` is annotated with `{:left}`.
-This annotation is applicable to `inc` only at its disappearing layer 1
-This annotation indicates that at layer 1 any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
+This annotation is applicable to `inc` only at its disappearing layer 1.
+This annotation indicates that, at layer 1, any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
 
 If a mover procedure is a left mover then both synchronous and asynchronous calls to it can be summarized at its disappearing layer.
 For example, the body of `inc` contains both a synchronous and asynchronous call to itself.
@@ -471,8 +472,8 @@ The `{:sync}` annotation on the asynchronous call to `inc` indicates to CIVL tha
 
 ## Abstraction aids commutativity
 
-Often, a program may use atomic actions that are neither right nor left mover and hence cannot be commuted across actions performed by other threads.
-But it may be possible to create abstractions of the program's atomic actions so that important actions achieve a commuting mover type.
+Often, a program may use atomic actions that are neither right nor left movers and hence cannot be commuted with actions performed by other threads.
+However, it may be possible to create abstractions of the program's atomic actions so that important actions achieve a commuting mover type.
 
 ```
 var {:layer 0,2} x:int;
@@ -535,9 +536,9 @@ requires a[tid] == v;
 ```
 
 In the program above, the declaration of type `Tid` has the annotation `{:linear "X"}`.
-This annotation indicates that values of type `Tid` are permissions that must be distributed among the variables of the program without duplication.
+This annotation indicates that values of type `Tid` are *permissions* that must be distributed among the variables of the program without duplication.
 As the program executes, the permissions stored in the program variables may be redistributed but not duplicated, a condition that is verified by CIVL.
-These permissions are associated with a domain called "X"; disjointness is enforced within a domain but not across domains.
+These permissions are associated with a *domain* called `X`; disjointness is enforced within a domain but not across domains.
 Different domains may use the same permission type.
 For example, if `Tid` is the permission type for a domain `Y` also, then we would use the declaration `type {:linear "X", "Y"} Tid;`.
 
