@@ -40,10 +40,11 @@ which can be installed from a [NuGet package](https://www.nuget.org/packages/Boo
 [Z3](https://github.com/Z3Prover/z3) theorem prover.
 
 To verify a CIVL program, simply invoke Boogie on the program as follows
-(CIVL programs typically use Z3's generalized array theory, enabled by `-useArrayTheory`):
+(Boogie automatically detects CIVL programs and internally sets the options
+`-useArrayTheory -lib -monomorphize`):
 
 ```
-$ boogie -nologo Test/civl/ticket.bpl
+$ boogie Test/civl/ticket.bpl
 
 Boogie program verifier finished with 19 verified, 0 errors
 ```
