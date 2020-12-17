@@ -11,6 +11,8 @@ parameters of the attribute). CIVL programs are embedded in Boogie using
 attributes. This section provides a brief overview of CIVL's constructs and how
 they are expressed using attributes.
 
+Running `boogie -attrHelp` prints all supported attributes.
+
 ## Types, Functions, Constants
 
 Types, functions, and constants are declared just as in Boogie.
@@ -105,8 +107,8 @@ procedure {:yields}{:layer 1}{:refines "FOO"} foo (...) returns (...);
 Action procedure `foo` *disappears* at layer `1` and *refines* the atomic action
 `FOO`.
 
-If no `:refines` attribute is given, then the procedure refines the implicitly
-declared atomic action `SKIP`.
+If no `:refines` attribute is given, then the procedure is called a
+*skip procedure* which refines the implicitly declared atomic action `SKIP`.
 
 ```
 procedure {:both}{:layer 0,∞} SKIP () { }
@@ -157,7 +159,7 @@ A call can be annotated with `:refines`.
 Every loop is either *non-yielding* or *yielding* (denoted with `:yields` on a
 loop invariant).
 
-Loops might be annotated with `:terminates`.
+Loops might be annotated with `:cooperates`.
 
 ## Lemma Procedures
 
@@ -175,9 +177,14 @@ that adding an element to a set increases the sets cardinality by one.
 
 # Layered Concurrent Programs
 
-CIVL verifies a layered concurrent program by verifying each layer separately.
-We show an example to explain how a layered program represents a sequence of increasingly simpler concurrent programs.
+CIVL takes as input a *layered concurrent program*.
+A layered concurrent program represents a sequence of concurrent programs, from most concrete (e.g., a low-level implementation) to most abstract (e.g., a high-level specification).
+CIVL verifies a layered concurrent program by verifying each layer and the connection between adjacent layers separately.
+
+In this section we show a basic example to explain how a layered concurrent program represents a sequence of increasingly simpler concurrent programs.
 Understanding this foundational aspect of CIVL will make it easier to understand everything explained later.
+
+## A simple layered concurrent program
 
 ```
 var {:layer 0,2} x: int;
@@ -234,7 +241,7 @@ The implementation of procedure `Incr` is not provided but it is known from the 
 ```
 var x: int;
 
-procedure AtomicIncr(val: int)
+procedure {:atomic} AtomicIncr(val: int)
 modifies x;
 { x := x + val; }
 
@@ -259,7 +266,7 @@ Explanation for these concepts is presented later.
 ```
 var x: int;
 
-procedure AtomicIncrBy2()
+procedure {:atomic} AtomicIncrBy2()
 modifies x;
 { x := x + 2; }
 
@@ -272,22 +279,60 @@ procedure {:yields} Main()
 In the layer-2 program, shown above, the call to procedure `IncrBy2` in `Main` is rewritten to a call to atomic action `AtomicIncrBy2`.
 The justification for this rewrite is that `IncrBy2` refines `AtomicIncrBy2`.
 
+## Layer checking
+
+The well-formedness of a layered concurrent programs is governed by a set of layer type-checking rules.
+These rules ensure that the individual program layers can be extracted and that the verification guarantees are justified.
+We can loosely distinguish between "data layering" and "control layering".
+
+Data layering concernes the variables (both global and local) that exist on each layer.
+In the example above, both global variable `x` and local variable `val` (the input parameter to `Incr` and `AtomicIncr`) exist on all program layers.
+In a [later section](#introducing-and-hiding-variables) we show how variables can be introduced and hidden, such that different layers have different state.
+
+Control layering concerns the actions and yielding procedures that exist on each layer.
+As one of the most central aspects of CIVL, this controls how the bodies of yielding procedures changes across layers.
+In a layered concurrent program, atomic actions cannot be called directly.
+Instead, yielding procedures can call other yielding procedures.
+For example, recall that `IncrBy2` in the layered program above makes calls to procedure `Incr`, as opposed to `AtomicIncr`.
+In the layer 0 program we still see this calls to `Incr`.
+Then, since `Incr` disappears at layer 0 and is abstracted by `AtomicIncr`, we see these calls replaced by calls to `AtomicIncr` in the layer 1 program.
+In general, a yielding procedure that disappears at layer `n` cannot make calls to yielding procedures that disappear on a layer greater than `n`.
+The simple case is that there are only calls to procedures that disappear on layers smaller than `n`.
+Then there are only calls to atomic actions left at layer `n`.
+There are only three exceptions when a yielding procedure can make calls to another yielding procedure with the same disappearing layer:
+(1) calls to skip procedures,
+(2) calls to mover procedures, and
+(3) calls that are annotated with `:refines`.
+
+Data layering and control layering obviously interact, since the variables accessed by the control of a particular layer must indeed exist on that layer.
+
 ## Semantics
 
-In CIVL's model of the semantics of a concurrent program, a context switch is allowed only at entry or exit from a procedure or at an explicit `yield` statement.
+CIVL considers two semantics for a concurrent program, the *preemptive* and the *non-preemptive* semantics.
+The preemptive semantics is the standard interleaving semantics, where context switches can happen at any time between the execution of atomic actions.
+This is the semantics that models the acutal behaviors of the concurrent program; the behaviors that we want to verify.
+By contrast, the non-preemptive semantics allows a context switch only at the entry to or exit from a procedure, and at an explicit `yield` statement.
 In particular, a context switch is not introduced just before or just after executing an atomic action.
-In going from the layer-0 program to the layer-2 program, the set of program locations where context switches may happen progressively reduces, thereby leading to simplified reasoning at the higher layer.
+The non-preemptive semantics simplifies reasoning, because fewer interleavings have to be considered.
+CIVL justifies going from the preemptive to the non-preemptive semantics using [mover types](#mover-types).
 
-A program location where a context switch may happen is called a yield location.
-Any execution path in a procedure from its entry to exit is
-partitioned into a sequence of execution fragments from a yield location to the next.
+**Note:** `yield` statements should not be thought of modeling the desired context-switch locations in the program to verify. Rather, the placement of `yield` statements specifies the non-preemtive semantics, and CIVL checks that there are "sufficiently many" yields to use the non-preemtive semantics to reason about the preemptive semantics.
+
+A program location where a context switch may happen is called a *yield location*.
+Any execution path in a procedure from its entry to its exit is
+partitioned into a sequence of execution fragments from one yield location to the next.
 Each such execution fragment is called a *yield-to-yield fragment*.
+Notice that these yield-to-yield fragments are dynamically scoped.
+
+Going from preemtive to non-preemptive semantics simplifies the reasoning at one particular program layer.
+In going from the layer-0 program to the layer-2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invokations of atomic actions, thereby leading to simplified reasoning at the higher layer.
 
 ## Refinement checking
 
 We now explain how the annotation `{:refines "AtomicIncrBy2"}` is checked on the implementation of the procedure `IncrBy2`.
 This refinement checking justifies the transformation of the layer-1 program to the layer-2 program.
 CIVL checks that along each execution path in `IncrBy2` from entry to exit, there is exactly one yield-to-yield fragment that behaves like `AtomicIncrBy2`.
+(In this particular example, `IncrBy2` consists of only a single yield-to-yield fragment at layer 1.)
 All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
 The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
 
@@ -427,19 +472,29 @@ p()
 }
 ```
 
-The atomic action `AtomicIncr` is labeled with the mover type `both` indicating that it is both a left mover and a right mover.
+The atomic action `AtomicIncr` is labeled with the mover type `both`, indicating that it is both a left mover and a right mover.
 Consequently, the calls to `Incr` in `p` do not have to be separated by a yield.
 The calls to `Incr` in `p` commute with atomic actions executed by other threads so that they all appear to execute together.
 The use of mover types leads to fewer yields and more efficient verification of the body of `p`.
 
+In general, CIVL checks that the sequence of mover types of the atomic actions in every yield-to-yields fragment matches the expression `(right mover)*;(non-mover)?;(left-mover)*`, i.e., a sequence of right movers, followed by at most one non-mover, followed by a sequence of left movers.
+The mover types of atomic actions are validated using pairwise commutativity checks between all atomic actions that exist together on some layer.
+
+## Cooperation
+
+**TODO**
+
 ## Mover procedures
 
-Mover types are applicable to procedures in addition to atomic actions.
+Sometimes it can be convenient to reason about a yielding procedure not by abstracting it to an atomic action.
+For this purpose, CIVL supports *mover procedures*, which we illustrate in the following example.
 
 ```
 var {:layer 0,2} x : int;
 
-procedure {:yields} {:left} {:layer 1} {:terminates} inc(i : int)
+// TODO: add a yielding procedure at layer 1 that calls inc?
+
+procedure {:yields} {:left} {:layer 1} {:cooperates} inc(i : int)
 modifies x;
 requires {:layer 1} i >= 0;
 ensures {:layer 1} x == old(x) + i;
@@ -447,11 +502,7 @@ ensures {:layer 1} x == old(x) + i;
   if (i > 0)
   {
     call inc_x(1);
-    if (*) {
-      call inc(i-1);
-    } else {
-      async call {:sync} inc(i-1);
-    }
+    call inc(i-1);
   }
 }
 
@@ -461,14 +512,13 @@ modifies x;
 { x := x + n; }
 ```
 
-In the program above, procedure `inc` is annotated with `{:left}`.
+In the program above, the mover procedure `inc` is annotated with `:left`.
 This annotation is applicable to `inc` only at its disappearing layer 1.
 This annotation indicates that, at layer 1, any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
+In general, a mover procedure that diappears at layer `n` can only be called by yielding procedures that also disappear at layer `n`.
 
-If a mover procedure is a left mover then both synchronous and asynchronous calls to it can be summarized at its disappearing layer.
-For example, the body of `inc` contains both a synchronous and asynchronous call to itself.
-Both calls are treated identically because of the `{:left}` annotation on `inc`.
-The `{:sync}` annotation on the asynchronous call to `inc` indicates to CIVL that the call should be synchronized and summarized.
+Notice that we effectively "saved a layer", because `...` can call `inc` direcly at layer 1.
+Without mover procedures, an additional layer would be necessary to first summarize `inc` to an atomic action.
 
 ## Abstraction aids commutativity
 
