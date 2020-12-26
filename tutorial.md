@@ -325,7 +325,7 @@ Each such execution fragment is called a *yield-to-yield fragment*.
 Notice that these yield-to-yield fragments are dynamically scoped.
 
 Going from preemtive to non-preemptive semantics simplifies the reasoning at one particular program layer.
-In going from the layer-0 program to the layer-2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invokations of atomic actions, thereby leading to simplified reasoning at the higher layer.
+In going from the layer-0 program to the layer-2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invocations of atomic actions, thereby leading to simplified reasoning at the higher layer.
 
 ## Refinement checking
 
