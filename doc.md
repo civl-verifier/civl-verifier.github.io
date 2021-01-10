@@ -232,26 +232,14 @@ procedure {:yields} {:layer 2} Main()
 The program above represents three concurrent programs, at layers 0, 1, and 2, that share parts of their code.
 Layer 0 is the most concrete and layer 2 is the most abstract.
 The annotation `{:layer 0,2}` on global variable `x` is a range of layers from 0 to 2 indicating that `x` exists at all layers in this layer range.
+The global variable `x` is introduced at layer 0 via the introduction action `Intro_x` and hidden at layer 2.
+Introduction and hiding of global and local variables is explained in detail in a
+[later section](#introducing-and-hiding-variables).
 The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on which `Incr` exists.
 The annotation `{:refines "AtomicIncr"}` on `Incr` indicates that on layers greater than 0 a call to `Incr` is rewritten to a call to `AtomicIncr`.
 Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
 
-### Programs at Layer 0
-
-```
-procedure {:yields} Incr(val: int)
-{ }
-
-procedure {:yields} IncrBy2()
-{
-  par Incr(1) | Incr(1);
-}
-
-procedure {:yields} Main()
-{
-  call IncrBy2();
-}
-```
+### Program at Layer 0
 
 ```
 var x: int;
@@ -276,10 +264,12 @@ procedure {:yields} Main()
 }
 ```
 
-The layer-0 program, shown above, contains only procedures and no atomic actions.
-The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically the `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
+The layer-0 program is shown above.
+Procedure `IncrBy2` creates two tasks via a parallel call to `Incr`, each instance of which
+makes a single call to the atomic action `Intro_x`.
+Preemptions can occur at entry into or exit from `Main`, `IncrBy2`, or `Incr`.
 
-### Programs at Layer 1
+### Program at Layer 1
 
 ```
 var x: int;
@@ -304,7 +294,7 @@ In the layer-1 program, shown above, the parallel call to `Incr` is rewritten to
 The justification for this rewrite is that `Incr` refines `AtomicIncr` and `AtomicIncr` is a left mover.
 Explanation for these concepts is presented later.
 
-### Programs at Layer 2
+### Program at Layer 2
 
 ```
 var x: int;
@@ -397,6 +387,18 @@ RecursiveAcquire({:layer 1} {:linear "tid"} tid: Tid)
 ```
 
 # Introducing and Hiding Variables
+
+**TODO**:
+This section must explain that variable introduction and hiding result in two different
+programs at each layer, called the low program and the high program of the layer.
+Neither the low nor the high program at layer n contain the variables hidden at n.
+The variables introduced at layer n and the introduction actions that introduce them
+are present in the high program but not the low program at layer n.
+Refinement checking at a layer is performed on the high program of that layer.
+The [earlier example](#a-simple-layered-concurrent-program) only showed the high
+program at each layer.
+In that example, since the only layer at which variables are introduced is layer 0,
+the low and high programs coincide at all layers except 0.
 
 In a multi-layere refinement proof it is usually not only useful to change the granularity of atomicity, but also the state representation (i.e., the set of variables over which different program layers are expressed).
 In this section we show CIVL's support for both introduction and hiding of both global and local variables.
