@@ -391,7 +391,7 @@ RecursiveAcquire({:layer 1} {:linear "tid"} tid: Tid)
 **TODO**:
 This section must explain that variable introduction and hiding result in two different
 programs at each layer, called the low program and the high program of the layer.
-Neither the low nor the high program at layer n contain the variables hidden at n.
+Neither the low nor the high program at layer n contains the variables hidden at n.
 The variables introduced at layer n and the introduction actions that introduce them
 are present in the high program but not the low program at layer n.
 Refinement checking at a layer is performed on the high program of that layer.
