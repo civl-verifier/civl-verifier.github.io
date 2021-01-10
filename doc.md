@@ -236,7 +236,7 @@ The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on w
 The annotation `{:refines "AtomicIncr"}` on `Incr` indicates that on layers greater than 0 a call to `Incr` is rewritten to a call to `AtomicIncr`.
 Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
 
-## Programs at Layer 0
+### Programs at Layer 0
 
 ```
 procedure {:yields} Incr(val: int)
@@ -279,7 +279,7 @@ procedure {:yields} Main()
 The layer-0 program, shown above, contains only procedures and no atomic actions.
 The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically the `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
 
-## Programs at Layer 1
+### Programs at Layer 1
 
 ```
 var x: int;
@@ -304,7 +304,7 @@ In the layer-1 program, shown above, the parallel call to `Incr` is rewritten to
 The justification for this rewrite is that `Incr` refines `AtomicIncr` and `AtomicIncr` is a left mover.
 Explanation for these concepts is presented later.
 
-## Programs at Layer 2
+### Programs at Layer 2
 
 ```
 var x: int;
