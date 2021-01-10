@@ -74,7 +74,7 @@ distributed protocols
 [Chang-Roberts](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/ChangRoberts.bpl)),
 and many more.
 
-## [Documentation (under construction)](tutorial)
+## [Documentation (under construction)](doc)
 
 We also recommend looking at simple
 examples from our [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl),
