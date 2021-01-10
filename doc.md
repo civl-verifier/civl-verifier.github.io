@@ -2,15 +2,21 @@
 title: Tutorial
 ---
 
-1. [CIVL embedding into Boogie](#civl-embedding-into-boogie)
-2. [Layered Concurrent Programs](#layered-concurrent-programs)
-3. [Invariants](#invariants)
-4. [Justifying the non-preemptive semantics](#justifying-the-non-preemptive-semantics)
-5. [Introducing and hiding variables](#introducing-and-hiding-variables)
-6. [Linear Typing and Permissions](#linear-typing-and-permissions)
-7. [Handling asynchronous programs](#handling-asynchronous-programs)
+[CIVL Embedding into Boogie](#civl-embedding-into-boogie)
 
-# CIVL embedding into Boogie
+[Layered Concurrent Programs](#layered-concurrent-programs)
+
+[Introducing and Hiding Variables](#introducing-and-hiding-variables)
+
+[Justifying the Non-preemptive Semantics](#justifying-the-non-preemptive-semantics)
+
+[Invariants](#invariants)
+
+[Linear Typing and Permissions](#linear-typing-and-permissions)
+
+[Handling Asynchronous Programs](#handling-asynchronous-programs)
+
+# CIVL Embedding into Boogie
 
 CIVL is an extension of Boogie. In Boogie, (almost every) abstract syntax tree
 node can be annotated with attributes of the form `{:attr e1, e2, ...}`, where
@@ -192,12 +198,19 @@ CIVL verifies a layered concurrent program by verifying each layer and the conne
 In this section we show a basic example to explain how a layered concurrent program represents a sequence of increasingly simpler concurrent programs.
 Understanding this foundational aspect of CIVL will make it easier to understand everything explained later.
 
-## A simple layered concurrent program
+## A Simple Layered Concurrent Program
 
 ```
 var {:layer 0,2} x: int;
 
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:intro} {:layer 0} Intro_x(val: int)
+modifies x;
+{ x := x + val; }
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int)
+{
+  call Intro_x();
+}
 procedure {:left} {:layer 1} AtomicIncr(val: int)
 modifies x;
 { x := x + val; }
@@ -223,12 +236,34 @@ The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on w
 The annotation `{:refines "AtomicIncr"}` on `Incr` indicates that on layers greater than 0 a call to `Incr` is rewritten to a call to `AtomicIncr`.
 Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
 
-## Program at layer 0
+## Programs at Layer 0
+
+```
+procedure {:yields} Incr(val: int)
+{ }
+
+procedure {:yields} IncrBy2()
+{
+  par Incr(1) | Incr(1);
+}
+
+procedure {:yields} Main()
+{
+  call IncrBy2();
+}
+```
 
 ```
 var x: int;
 
-procedure {:yields} Incr(val: int);
+procedure {:intro} Intro_x(val: int)
+modifies x;
+{ x := x + val; }
+
+procedure {:yields} Incr(val: int)
+{
+  call Intro_x(val);
+}
 
 procedure {:yields} IncrBy2()
 {
@@ -244,7 +279,7 @@ procedure {:yields} Main()
 The layer-0 program, shown above, contains only procedures and no atomic actions.
 The implementation of procedure `Incr` is not provided but it is known from the description of the layered program, specifically the `{:refines "AtomicIncr"}` annotation on `Incr`, that this implementation behaves like the atomic action `AtomicIncr`.
 
-## Program at layer 1
+## Programs at Layer 1
 
 ```
 var x: int;
@@ -269,7 +304,7 @@ In the layer-1 program, shown above, the parallel call to `Incr` is rewritten to
 The justification for this rewrite is that `Incr` refines `AtomicIncr` and `AtomicIncr` is a left mover.
 Explanation for these concepts is presented later.
 
-## Program at layer 2
+## Programs at Layer 2
 
 ```
 var x: int;
@@ -287,7 +322,7 @@ procedure {:yields} Main()
 In the layer-2 program, shown above, the call to procedure `IncrBy2` in `Main` is rewritten to a call to atomic action `AtomicIncrBy2`.
 The justification for this rewrite is that `IncrBy2` refines `AtomicIncrBy2`.
 
-## Layer checking
+## Layer Checking
 
 The well-formedness of a layered concurrent programs is governed by a set of layer type-checking rules.
 These rules ensure that the individual program layers can be extracted and that the verification guarantees are justified.
@@ -335,7 +370,7 @@ Notice that these yield-to-yield fragments are dynamically scoped.
 Going from preemtive to non-preemptive semantics simplifies the reasoning at one particular program layer.
 In going from the layer-0 program to the layer-2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invocations of atomic actions, thereby leading to simplified reasoning at the higher layer.
 
-## Refinement checking
+## Refinement Checking
 
 We now explain how the annotation `{:refines "AtomicIncrBy2"}` is checked on the implementation of the procedure `IncrBy2`.
 This refinement checking justifies the transformation of the layer-1 program to the layer-2 program.
@@ -343,6 +378,204 @@ CIVL checks that along each execution path in `IncrBy2` from entry to exit, ther
 (In this particular example, `IncrBy2` consists of only a single yield-to-yield fragment at layer 1.)
 All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
 The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
+
+**TODO**: Explain the example below.
+
+```
+procedure {:yields} {:layer 1} {:refines "atomic_Acquire"}
+{:yield_preserves "LockInv"}
+RecursiveAcquire({:layer 1} {:linear "tid"} tid: Tid)
+{
+  var t: bool;
+
+  call t := CAS(false, true);
+  if (t) {
+    call set_l(Some(tid));
+  } else {
+    call {:refines} RecursiveAcquire(tid);
+  }
+```
+
+# Introducing and Hiding Variables
+
+In a multi-layere refinement proof it is usually not only useful to change the granularity of atomicity, but also the state representation (i.e., the set of variables over which different program layers are expressed).
+In this section we show CIVL's support for both introduction and hiding of both global and local variables.
+
+In the following example program, the usage of variable `x` is changed into the usage of variable `y`.
+This is not very exciting, but helpful for explaining the basic concepts.
+
+```
+var {:layer 1,2} y:int;
+var {:layer 0,1} x:int;
+
+procedure {:atomic} {:layer 2} atomic_read_y () returns (v:int)
+{ v := y; }
+
+procedure {:atomic} {:layer 2} atomic_write_y (y':int)
+modifies y;
+{ y := y'; }
+
+procedure {:yields} {:layer 1} {:refines "atomic_read_y"}  read_y () returns (v:int)
+requires {:layer 1} x == y;
+{
+  call v := read_x();
+}
+
+procedure {:yields} {:layer 1} {:refines "atomic_write_y"}  write_y (y':int)
+{
+  call write_x(y');
+  call set_y_to_x();
+}
+
+procedure {:intro} {:layer 1} set_y_to_x ()
+modifies y;
+{
+  y := x;
+}
+
+procedure {:atomic} {:layer 1} atomic_read_x () returns (v:int)
+{ v := x; }
+
+procedure {:atomic} {:layer 1} atomic_write_x (x':int)
+modifies x;
+{ x := x'; }
+
+procedure {:yields} {:layer 0} {:refines "atomic_read_x"} read_x () returns (v:int);
+procedure {:yields} {:layer 0} {:refines "atomic_write_x"} write_x (x':int);
+```
+
+First, consider the layer ranges of `x` and `y`. Variable `x` is introduced at layer 0 and hidden at layer 1, while `y` is introduced at layer 1 and hidden at layer 2. Thus, they "overlap" at layer 1.
+At layer 1 we have the atomic actions `atomic_read_x` and `atomic_write_x`, which, well, read from and write to `x`.
+These actions are called by the yielding procedures `read_y` and `write_y`, respectively.
+Now we want to show that `read_y` refines `atomic_read_y`, and `write_y` refines `atomic_write_y`.
+Since `read_y` has the precondition `x == y` (the invariant that expresses our intended connection between `x` and `y`), we know that after reading `x` into the output variable `v`, also `v == y` holds, which is all we need to prove that `read_y` refines `atomic_read_y`.
+In `write_y`, the input variable `y'` is written to `x` by `write_x`.
+But what about `y`?
+To express our intention for `y` we call the introduction action `set_y_to_x`, which sets `y` to the current value of `x`, which at the time of invocation is `y'`.
+Thus we get `y == y'` and we can prove that `write_y` refines `atomic_write_y`.
+
+Introduction actions like `set_y_to_x` have the specific purpose of assigning meaning to introduced variables.
+As such, they are a kind of ghost code that does not cause a context switch;
+recall that `atomic_write_x` and `set_y_to_x` need to execute without context switch to ensure `y == y'`.
+
+We have the following layering constraints:
+
+* A global variable accessed by an atomic action must be introduced strictly before the action and hidden not earlier than the action. For example, `x` is introduced at layer 0 before `atomic_read_x` at layer 1, and is hidden at layer 1 together with `atomic_read_x`. It would not be allowed to already introduce `atomic_read_x` at layer 0.
+* An introduction action can only modify global variables that are introduced at the layer of the introduction action. For example, `y` is introduced at layer 1 and thus can be modified by `set_y_to_x`. An introduction action can read any global variable where the layer number of the introduction action is contained in the layer range of the variable.
+
+**TODO:** Add an explanation what layer ranges and introduction actions mean conceptually for the program layers represented by a layered concurrent program.
+
+# Justifying the Non-preemptive Semantics
+
+## Mover Types
+
+The following code illustrates mover types for atomic actions.
+
+```
+var {:layer 0,1} x:int;
+
+procedure {:yield_invariant} {:layer 1} yield_x(n: int);
+requires x >= n;
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:both} {:layer 1} AtomicIncr(val: int)
+modifies x;
+{ x := x + val; }
+
+procedure {:yields} {:layer 1}
+{:yield_requires "yield_x", 5}
+{:yield_ensures "yield_x", 8}
+p()
+{
+  call Incr(1);
+  call Incr(1);
+  call Incr(1);
+}
+```
+
+The atomic action `AtomicIncr` is labeled with the mover type `both`, indicating that it is both a left mover and a right mover.
+Consequently, the calls to `Incr` in `p` do not have to be separated by a yield.
+The calls to `Incr` in `p` commute with atomic actions executed by other threads so that they all appear to execute together.
+The use of mover types leads to fewer yields and more efficient verification of the body of `p`.
+
+In general, CIVL checks that the sequence of mover types of the atomic actions in every yield-to-yields fragment matches the expression `(right mover)*;(non-mover)?;(left-mover)*`, i.e., a sequence of right movers, followed by at most one non-mover, followed by a sequence of left movers.
+The mover types of atomic actions are validated using pairwise commutativity checks between all atomic actions that exist together on some layer.
+
+## Cooperation
+
+**TODO**
+
+## Mover Procedures
+
+Sometimes it can be convenient to reason about a yielding procedure not by abstracting it to an atomic action.
+For this purpose, CIVL supports *mover procedures*, which we illustrate in the following example.
+
+```
+var {:layer 0,2} x : int;
+
+// TODO: add a yielding procedure at layer 1 that calls inc?
+
+procedure {:yields} {:left} {:layer 1} {:cooperates} inc(i : int)
+modifies x;
+requires {:layer 1} i >= 0;
+ensures {:layer 1} x == old(x) + i;
+{
+  if (i > 0)
+  {
+    call inc_x(1);
+    call inc(i-1);
+  }
+}
+
+procedure {:yields} {:layer 0} {:refines "atomic_inc_x"} inc_x(n: int);
+procedure {:both} {:layer 1} atomic_inc_x(n: int)
+modifies x;
+{ x := x + n; }
+```
+
+In the program above, the mover procedure `inc` is annotated with `:left`.
+This annotation is applicable to `inc` only at its disappearing layer 1.
+This annotation indicates that, at layer 1, any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
+In general, a mover procedure that diappears at layer `n` can only be called by yielding procedures that also disappear at layer `n`.
+
+Notice that we effectively "saved a layer", because `...` can call `inc` direcly at layer 1.
+Without mover procedures, an additional layer would be necessary to first summarize `inc` to an atomic action.
+
+## Abstraction aids Commutativity
+
+Often, a program may use atomic actions that are neither right nor left movers and hence cannot be commuted with actions performed by other threads.
+However, it may be possible to create abstractions of the program's atomic actions so that important actions achieve a commuting mover type.
+
+```
+var {:layer 0,2} x:int;
+
+procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:atomic} {:layer 1} AtomicIncr(val: int)
+modifies x;
+{ x := x + val; }
+
+procedure {:yields} {:layer 0} {:refines "AtomicRead"} Read() returns (v: int);
+procedure {:atomic} {:layer 1} AtomicRead() returns (v: int)
+{ v := x; }
+
+procedure {:yields} {:layer 1} {:refines "AbstractAtomicIncr"} _Incr(val: int)
+{
+  call Incr(val);
+}
+procedure {:right} {:layer 2} AbstractAtomicIncr(val: int)
+{ assert 0 <= val; x := x + val; }
+
+procedure {:yields} {:layer 1} {:refines "AbstractAtomicRead"} _Read() returns (v: int)
+{
+  call Read();
+}
+procedure {:left} {:layer 2} AbstractAtomicRead() returns (v: int)
+{ assume x <= v; }
+```
+
+In the code above, atomic actions `AtomicIncr` and `AtomicRead` at layer 1 are neither right nor left movers.
+At layer 2, we create abstractions `AbstractAtomicIncr` and `AbstractAtomicRead` of `AtomicIncr` and `AtomicRead` respectively.
+The abstractions are chosen so that `AbstractAtomicIncr` is a right mover and `AbstractAtomicRead` is a left mover.
 
 # Invariants
 
@@ -441,7 +674,7 @@ procedure {:yields} {:layer 1}
 q()
 {
   while (*)
-  {:yield_loop "yield_x", old(x)}
+  invariant {:yields} {:layer 1} {:yield_loop "yield_x", old(x)} true;
   {
     call Incr(3);
   }
@@ -461,189 +694,6 @@ In the implementation of `p`, invocations of `yield_x` replace location invarian
 
 Procedure `q` uses the annotation `{:yield_preserves "yield_x", old(x)}` which is a shorthand for a pair of annotations `{:yield_requires "yield_x", old(x)}` and `{:yield_ensures "yield_x", old(x)}`.
 Procedure `q` also uses `{:yield_loop "yield_x", old(x)}` to supply the noninterference condition at the implicit yield at the head of the loop in `q`.
-
-# Justifying the non-preemptive semantics
-
-## Mover types
-
-The following code illustrates mover types for atomic actions.
-
-```
-var {:layer 0,1} x:int;
-
-procedure {:yield_invariant} {:layer 1} yield_x(n: int);
-requires x >= n;
-
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
-procedure {:both} {:layer 1} AtomicIncr(val: int)
-modifies x;
-{ x := x + val; }
-
-procedure {:yields} {:layer 1}
-{:yield_requires "yield_x", 5}
-{:yield_ensures "yield_x", 8}
-p()
-{
-  call Incr(1);
-  call Incr(1);
-  call Incr(1);
-}
-```
-
-The atomic action `AtomicIncr` is labeled with the mover type `both`, indicating that it is both a left mover and a right mover.
-Consequently, the calls to `Incr` in `p` do not have to be separated by a yield.
-The calls to `Incr` in `p` commute with atomic actions executed by other threads so that they all appear to execute together.
-The use of mover types leads to fewer yields and more efficient verification of the body of `p`.
-
-In general, CIVL checks that the sequence of mover types of the atomic actions in every yield-to-yields fragment matches the expression `(right mover)*;(non-mover)?;(left-mover)*`, i.e., a sequence of right movers, followed by at most one non-mover, followed by a sequence of left movers.
-The mover types of atomic actions are validated using pairwise commutativity checks between all atomic actions that exist together on some layer.
-
-## Cooperation
-
-**TODO**
-
-## Mover procedures
-
-Sometimes it can be convenient to reason about a yielding procedure not by abstracting it to an atomic action.
-For this purpose, CIVL supports *mover procedures*, which we illustrate in the following example.
-
-```
-var {:layer 0,2} x : int;
-
-// TODO: add a yielding procedure at layer 1 that calls inc?
-
-procedure {:yields} {:left} {:layer 1} {:cooperates} inc(i : int)
-modifies x;
-requires {:layer 1} i >= 0;
-ensures {:layer 1} x == old(x) + i;
-{
-  if (i > 0)
-  {
-    call inc_x(1);
-    call inc(i-1);
-  }
-}
-
-procedure {:yields} {:layer 0} {:refines "atomic_inc_x"} inc_x(n: int);
-procedure {:both} {:layer 1} atomic_inc_x(n: int)
-modifies x;
-{ x := x + n; }
-```
-
-In the program above, the mover procedure `inc` is annotated with `:left`.
-This annotation is applicable to `inc` only at its disappearing layer 1.
-This annotation indicates that, at layer 1, any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
-In general, a mover procedure that diappears at layer `n` can only be called by yielding procedures that also disappear at layer `n`.
-
-Notice that we effectively "saved a layer", because `...` can call `inc` direcly at layer 1.
-Without mover procedures, an additional layer would be necessary to first summarize `inc` to an atomic action.
-
-## Abstraction aids commutativity
-
-Often, a program may use atomic actions that are neither right nor left movers and hence cannot be commuted with actions performed by other threads.
-However, it may be possible to create abstractions of the program's atomic actions so that important actions achieve a commuting mover type.
-
-```
-var {:layer 0,2} x:int;
-
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
-procedure {:atomic} {:layer 1} AtomicIncr(val: int)
-modifies x;
-{ x := x + val; }
-
-procedure {:yields} {:layer 0} {:refines "AtomicRead"} Read() returns (v: int);
-procedure {:atomic} {:layer 1} AtomicRead() returns (v: int)
-{ v := x; }
-
-procedure {:yields} {:layer 1} {:refines "AbstractAtomicIncr"} _Incr(val: int)
-{
-  call Incr(val);
-}
-procedure {:right} {:layer 2} AbstractAtomicIncr(val: int)
-{ assert 0 <= val; x := x + val; }
-
-procedure {:yields} {:layer 1} {:refines "AbstractAtomicRead"} _Read() returns (v: int)
-{
-  call Read();
-}
-procedure {:left} {:layer 2} AbstractAtomicRead() returns (v: int)
-{ assume x <= v; }
-```
-
-In the code above, atomic actions `AtomicIncr` and `AtomicRead` at layer 1 are neither right nor left movers.
-At layer 2, we create abstractions `AbstractAtomicIncr` and `AbstractAtomicRead` of `AtomicIncr` and `AtomicRead` respectively.
-The abstractions are chosen so that `AbstractAtomicIncr` is a right mover and `AbstractAtomicRead` is a left mover.
-
-# Introducing and hiding variables
-
-In a multi-layere refinement proof it is usually not only useful to change the granularity of atomicity, but also the state representation (i.e., the set of variables over which different program layers are expressed).
-In this section we show CIVL's support for both introduction and hiding of both global and local variables.
-
-## A light warm-up
-
-In the following example program, the usage of variable `x` is changed into the usage of variable `y`.
-This is not very exciting, but helpful for explaining the basic concepts.
-
-```
-var {:layer 1,2} y:int;
-var {:layer 0,1} x:int;
-
-procedure {:atomic} {:layer 2} atomic_read_y () returns (v:int)
-{ v := y; }
-
-procedure {:atomic} {:layer 2} atomic_write_y (y':int)
-modifies y;
-{ y := y'; }
-
-procedure {:yields} {:layer 1} {:refines "atomic_read_y"}  read_y () returns (v:int)
-requires {:layer 1} x == y;
-{
-  call v := read_x();
-}
-
-procedure {:yields} {:layer 1} {:refines "atomic_write_y"}  write_y (y':int)
-{
-  call write_x(y');
-  call set_y_to_x();
-}
-
-procedure {:intro} {:layer 1} set_y_to_x ()
-modifies y;
-{
-  y := x;
-}
-
-procedure {:atomic} {:layer 1} atomic_read_x () returns (v:int)
-{ v := x; }
-
-procedure {:atomic} {:layer 1} atomic_write_x (x':int)
-modifies x;
-{ x := x'; }
-
-procedure {:yields} {:layer 0} {:refines "atomic_read_x"} read_x () returns (v:int);
-procedure {:yields} {:layer 0} {:refines "atomic_write_x"} write_x (x':int);
-```
-
-First, consider the layer ranges of `x` and `y`. Variable `x` is introduced at layer 0 and hidden at layer 1, while `y` is introduced at layer 1 and hidden at layer 2. Thus, they "overlap" at layer 1.
-At layer 1 we have the atomic actions `atomic_read_x` and `atomic_write_x`, which, well, read from and write to `x`.
-These actions are called by the yielding procedures `read_y` and `write_y`, respectively.
-Now we want to show that `read_y` refines `atomic_read_y`, and `write_y` refines `atomic_write_y`.
-Since `read_y` has the precondition `x == y` (the invariant that expresses our intended connection between `x` and `y`), we know that after reading `x` into the output variable `v`, also `v == y` holds, which is all we need to prove that `read_y` refines `atomic_read_y`.
-In `write_y`, the input variable `y'` is written to `x` by `write_x`.
-But what about `y`?
-To express our intention for `y` we call the introduction action `set_y_to_x`, which sets `y` to the current value of `x`, which at the time of invocation is `y'`.
-Thus we get `y == y'` and we can prove that `write_y` refines `atomic_write_y`.
-
-Introduction actions like `set_y_to_x` have the specific purpose of assigning meaning to introduced variables.
-As such, they are a kind of ghost code that does not cause a context switch;
-recall that `atomic_write_x` and `set_y_to_x` need to execute without context switch to ensure `y == y'`.
-
-We have the following layering constraints:
-
-* A global variable accessed by an atomic action must be introduced strictly before the action and hidden not earlier than the action. For example, `x` is introduced at layer 0 before `atomic_read_x` at layer 1, and is hidden at layer 1 together with `atomic_read_x`. It would not be allowed to already introduce `atomic_read_x` at layer 0.
-* An introduction action can only modify global variables that are introduced at the layer of the introduction action. For example, `y` is introduced at layer 1 and thus can be modified by `set_y_to_x`. An introduction action can read any global variable where the layer number of the introduction action is contained in the layer range of the variable.
-
-**TODO:** Add an explanation what layer ranges and introduction actions mean conceptually for the program layers represented by a layered concurrent program.
 
 # Linear Typing and Permissions
 
@@ -691,7 +741,7 @@ This assumption is used to prove that `AtomicRead` and `AtomicWrite` are both mo
 Permissions are useful also for proving interference-freedom for location and yield invariants.
 The yield invariant `YieldInv` is proved interference-free against any yield-to-yield code fragment that mutates `a` using `AtomicWrite`.
 
-## Permission collectors
+## Permission Collectors
 
 In some programs, it is helpful to make a distinction between the value stored in a variable and the permission associated with it.
 This increase in expressiveness is achieved by using a collector function from the type of the variable to the type of permissions.
@@ -755,7 +805,7 @@ function PermSetCollector(xs: [Perm]bool) : [Perm]bool {
 Permissions obtained by applying the collector function of the appropriate type to program variables continue to be distributed without being duplicated.
 The enforced invariant states that permissions obtained from two distinct variables are disjoint.
 
-## Permission redistribution
+## Permission Redistribution
 
 A variable that is annotated with `{:linear "D"}` for any domain `D` is a linear variable.
 Permissions are stored in a subset of the program's linear variables and may be redistributed among them as the program executes.
@@ -774,24 +824,7 @@ This annotation indicates that the actual input variable corresponding to `i` at
 Finally, the annotation `{:linear "perm"}` on an input parameter, although not used in the program above, would indicate that the
 correspoding actual input variable at the call site must be available before the call and remains available after the call.
 
-# Using `:refines` on calls
-
-```
-procedure {:yields} {:layer 1} {:refines "atomic_Acquire"}
-{:yield_preserves "LockInv"}
-RecursiveAcquire({:layer 1} {:linear "tid"} tid: Tid)
-{
-  var t: bool;
-
-  call t := CAS(false, true);
-  if (t) {
-    call set_l(Some(tid));
-  } else {
-    call {:refines} RecursiveAcquire(tid);
-  }
-```
-
-# Handling asynchronous programs
+# Handling Asynchronous Programs
 
 * Summarizing asynchronous calls using pending asyncs
 * Eliminating pending asyncs
