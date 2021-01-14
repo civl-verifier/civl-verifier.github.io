@@ -388,23 +388,10 @@ RecursiveAcquire({:layer 1} {:linear "tid"} tid: Tid)
 
 # Introducing and Hiding Variables
 
-**TODO**:
-This section must explain that variable introduction and hiding result in two different
-programs at each layer, called the low program and the high program of the layer.
-Neither the low nor the high program at layer n contains the variables hidden at n.
-The variables introduced at layer n and the introduction actions that introduce them
-are present in the high program but not the low program at layer n.
-Refinement checking at a layer is performed on the high program of that layer.
-The [earlier example](#a-simple-layered-concurrent-program) only showed the high
-program at each layer.
-In that example, since the only layer at which variables are introduced is layer 0,
-the low and high programs coincide at all layers except 0.
-
-In a multi-layere refinement proof it is usually not only useful to change the granularity of atomicity, but also the state representation (i.e., the set of variables over which different program layers are expressed).
-In this section we show CIVL's support for both introduction and hiding of both global and local variables.
+In a multi-layered refinement proof it is usually not only useful to change the granularity of atomicity, but also the state representation, i.e., the set of variables over which different program layers are expressed.
+In this section, we describe how CIVL supports introduction and hiding of both global and local variables.
 
 In the following example program, the usage of variable `x` is changed into the usage of variable `y`.
-This is not very exciting, but helpful for explaining the basic concepts.
 
 ```
 var {:layer 1,2} y:int;
@@ -412,17 +399,15 @@ var {:layer 0,1} x:int;
 
 procedure {:atomic} {:layer 2} atomic_read_y () returns (v:int)
 { v := y; }
-
-procedure {:atomic} {:layer 2} atomic_write_y (y':int)
-modifies y;
-{ y := y'; }
-
 procedure {:yields} {:layer 1} {:refines "atomic_read_y"}  read_y () returns (v:int)
 requires {:layer 1} x == y;
 {
   call v := read_x();
 }
 
+procedure {:atomic} {:layer 2} atomic_write_y (y':int)
+modifies y;
+{ y := y'; }
 procedure {:yields} {:layer 1} {:refines "atomic_write_y"}  write_y (y':int)
 {
   call write_x(y');
@@ -437,17 +422,32 @@ modifies y;
 
 procedure {:atomic} {:layer 1} atomic_read_x () returns (v:int)
 { v := x; }
+procedure {:yields} {:layer 0} {:refines "atomic_read_x"} read_x () returns (v:int)
+{
+  call v := intro_read_x();
+}
 
 procedure {:atomic} {:layer 1} atomic_write_x (x':int)
 modifies x;
 { x := x'; }
+procedure {:yields} {:layer 0} {:refines "atomic_write_x"} write_x (x':int)
+{
+  call intro_write_x(x');
+}
 
-procedure {:yields} {:layer 0} {:refines "atomic_read_x"} read_x () returns (v:int);
-procedure {:yields} {:layer 0} {:refines "atomic_write_x"} write_x (x':int);
+procedure {:intro} {:layer 0} intro_read_x () returns (v:int)
+{ v := x; }
+
+procedure {:intro} {:layer 0} intro_write_x (x':int)
+modifies x;
+{ x := x'; }
 ```
 
-First, consider the layer ranges of `x` and `y`. Variable `x` is introduced at layer 0 and hidden at layer 1, while `y` is introduced at layer 1 and hidden at layer 2. Thus, they "overlap" at layer 1.
-At layer 1 we have the atomic actions `atomic_read_x` and `atomic_write_x`, which, well, read from and write to `x`.
+First, consider the layer ranges of `x` and `y`.
+Variable `x` is introduced at layer 0 and hidden at layer 1, while `y` is introduced at layer 1 and hidden at layer 2.
+Thus, they "overlap" at layer 1.
+At layer 1 we have the atomic actions `atomic_read_x` and `atomic_write_x`,
+which read from and write to `x`, respectively.
 These actions are called by the yielding procedures `read_y` and `write_y`, respectively.
 Now we want to show that `read_y` refines `atomic_read_y`, and `write_y` refines `atomic_write_y`.
 Since `read_y` has the precondition `x == y` (the invariant that expresses our intended connection between `x` and `y`), we know that after reading `x` into the output variable `v`, also `v == y` holds, which is all we need to prove that `read_y` refines `atomic_read_y`.
@@ -462,10 +462,35 @@ recall that `atomic_write_x` and `set_y_to_x` need to execute without context sw
 
 We have the following layering constraints:
 
-* A global variable accessed by an atomic action must be introduced strictly before the action and hidden not earlier than the action. For example, `x` is introduced at layer 0 before `atomic_read_x` at layer 1, and is hidden at layer 1 together with `atomic_read_x`. It would not be allowed to already introduce `atomic_read_x` at layer 0.
-* An introduction action can only modify global variables that are introduced at the layer of the introduction action. For example, `y` is introduced at layer 1 and thus can be modified by `set_y_to_x`. An introduction action can read any global variable where the layer number of the introduction action is contained in the layer range of the variable.
+* All global variable accessed by an atomic action must exist throughout the layer range of the atomic action.
+For example, `x` is introduced at layer 0 before `atomic_read_x` at layer 1, and is hidden at layer 1 together with `atomic_read_x`.
+It is not permissible to already introduce `atomic_read_x` at layer 0.
+* An introduction action can only modify global variables that are introduced at the layer of the introduction action.
+For example, `y` is introduced at layer 1 and thus can be modified by `set_y_to_x`.
+An introduction action can read any global variable where the layer number of the introduction action is contained in the layer range of the variable.
 
-**TODO:** Add an explanation what layer ranges and introduction actions mean conceptually for the program layers represented by a layered concurrent program.
+Variable introduction and hiding create the possibility of two different
+programs at each layer, called the low program and the high program of the layer.
+The high program at layer n contains all the code of the low program at n together with
+calls to introduction actions that introduce variables at layer n.
+Neither the low nor the high program at layer n contains the variables hidden at n.
+The variables introduced at layer n and the introduction actions that introduce them
+are present in the high program but not the low program at layer n.
+Refinement checking at a layer is performed on the high program of that layer.
+
+The [earlier example](#a-simple-layered-concurrent-program) only showed the high
+program at each layer.
+In that example, since the only layer at which variables are introduced is layer 0,
+the low and high programs coincide at all layers except 0.
+In the program described in this section, `x` is introduced at layer 0 and `y` is
+introduced at layer 1.
+Consequently, we have the following:
+
+* The low program at layer 0 does not contain any variables;
+the high program at layer 0 contains only `x`.
+* The low program at layer 1 contains only `x`;
+the high program at layer 1 contains both `x` and `y`.
+* The low and high programs at layer 2 are identical and contain only `y`.
 
 # Justifying the Non-preemptive Semantics
 
@@ -500,12 +525,17 @@ Consequently, the calls to `Incr` in `p` do not have to be separated by a yield.
 The calls to `Incr` in `p` commute with atomic actions executed by other threads so that they all appear to execute together.
 The use of mover types leads to fewer yields and more efficient verification of the body of `p`.
 
-In general, CIVL checks that the sequence of mover types of the atomic actions in every yield-to-yields fragment matches the expression `(right mover)*;(non-mover)?;(left-mover)*`, i.e., a sequence of right movers, followed by at most one non-mover, followed by a sequence of left movers.
+In general, CIVL checks that the sequence of mover types of the atomic actions in every yield-to-yield fragment matches the expression `(right mover)*;(non-mover)?;(left-mover)*`, i.e., a sequence of right movers, followed by at most one non-mover, followed by a sequence of left movers.
 The mover types of atomic actions are validated using pairwise commutativity checks between all atomic actions that exist together on some layer.
 
 ## Cooperation
 
-**TODO**
+It is possible for the computation in a yield-to-yield fragment to be unbounded,
+e.g., due to the presence of a loop.
+The soundness of non-preemptive semantics requires that such a loop must be cooperative,
+i.e., there is a suitable extension of any finite prefix of the loop that exits the loop.
+Cooperation is identical to termination for deterministic an nonblocking loops but different in general.
+The cooperation of a loop or a recursive procedure is indicated with the `:cooperates` attribute.
 
 ## Mover Procedures
 
@@ -514,8 +544,6 @@ For this purpose, CIVL supports *mover procedures*, which we illustrate in the f
 
 ```
 var {:layer 0,2} x : int;
-
-// TODO: add a yielding procedure at layer 1 that calls inc?
 
 procedure {:yields} {:left} {:layer 1} {:cooperates} inc(i : int)
 modifies x;
@@ -538,10 +566,10 @@ modifies x;
 In the program above, the mover procedure `inc` is annotated with `:left`.
 This annotation is applicable to `inc` only at its disappearing layer 1.
 This annotation indicates that, at layer 1, any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
-In general, a mover procedure that diappears at layer `n` can only be called by yielding procedures that also disappear at layer `n`.
+A mover procedure that diappears at layer `n` can only be called by yielding procedures that also disappear at layer `n`.
 
-Notice that we effectively "saved a layer", because `...` can call `inc` direcly at layer 1.
-Without mover procedures, an additional layer would be necessary to first summarize `inc` to an atomic action.
+The procedure `inc` in the program above is annotated with the attribute `:cooperates`.
+This annotation is applicable to `inc` at layer 1 at which `inc` is  supposed to execute indivisibly.
 
 ## Abstraction aids Commutativity
 
