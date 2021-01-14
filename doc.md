@@ -369,23 +369,6 @@ CIVL checks that along each execution path in `IncrBy2` from entry to exit, ther
 All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
 The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
 
-**TODO**: Explain the example below.
-
-```
-procedure {:yields} {:layer 1} {:refines "atomic_Acquire"}
-{:yield_preserves "LockInv"}
-RecursiveAcquire({:layer 1} {:linear "tid"} tid: Tid)
-{
-  var t: bool;
-
-  call t := CAS(false, true);
-  if (t) {
-    call set_l(Some(tid));
-  } else {
-    call {:refines} RecursiveAcquire(tid);
-  }
-```
-
 # Introducing and Hiding Variables
 
 In a multi-layered refinement proof it is usually not only useful to change the granularity of atomicity, but also the state representation, i.e., the set of variables over which different program layers are expressed.
