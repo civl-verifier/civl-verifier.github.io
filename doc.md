@@ -839,5 +839,7 @@ correspoding actual input variable at the call site must be available before the
 
 # Handling Asynchronous Programs
 
-* Summarizing asynchronous calls using pending asyncs
-* Eliminating pending asyncs
+* Get rid of async call by converting it to SKIP
+* Use {:sync} to synchronize the call exactly where it happens
+* Creating pending asyncs during refinement (introducing the type, variables, etc. in the pending async machinery)
+* Eliminating pending asyncs (without and with induction)
