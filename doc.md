@@ -840,6 +840,64 @@ correspoding actual input variable at the call site must be available before the
 # Handling Asynchronous Programs
 
 * Get rid of async call by converting it to SKIP
+
+```
+procedure {:yields}{:layer 1} Service ()
+{
+  async call Callback();
+}
+
+procedure {:yields}{:layer 0} Callback ();
+```
+
 * Use {:sync} to synchronize the call exactly where it happens
-* Creating pending asyncs during refinement (introducing the type, variables, etc. in the pending async machinery)
-* Eliminating pending asyncs (without and with induction)
+
+```
+var {:layer 0,2} x:int;
+
+procedure {:yields}{:layer 1}{:refines "A_Callback"} Service ()
+{
+  async call {:sync} Callback();
+}
+
+procedure {:both}{:layer 1,2} A_Callback ()
+modifies x;
+{ x := x + 1; }
+procedure {:yields}{:layer 0}{:refines "A_Callback"} Callback ();
+```
+
+
+* Creating pending asyncs during refinement (introducing the type, variables, etc. in the pending async machinery, eliminating it)
+
+```
+var {:layer 0,3} x:int;
+
+type {:pending_async}{:datatype} PA;
+function {:constructor} A_Inc() : PA;
+
+procedure {:yields}{:layer 2}{:refines "A_Inc"} Client ()
+{
+  call Service();
+}
+
+procedure {:atomic}{:layer 1}
+{:IS "A_Inc"}{:elim "A_Inc"}
+A_Service() returns ({:pending_async "A_Inc"} PAs: [PA]int)
+{
+  PAs := MapConst(0);
+  PAs[A_Inc()] := 1;
+}
+procedure {:yields}{:layer 0}{:refines "A_Service"} Service ()
+{
+  async call Callback();
+}
+
+procedure {:both}{:layer 1,3} A_Inc ()
+modifies x;
+{ x := x + 1; }
+procedure {:yields}{:layer 0}{:refines "A_Inc"} Callback ();
+```
+
+* Eliminating pending asyncs (with induction)
+
+TODO: We can provide an example showing the use of triggers.  But that is not my preferred approach.
