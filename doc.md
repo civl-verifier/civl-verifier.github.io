@@ -8,13 +8,15 @@ title: Tutorial
 
 [Introducing and Hiding Variables](#introducing-and-hiding-variables)
 
-[Justifying the Non-preemptive Semantics](#justifying-the-non-preemptive-semantics)
+[Refinement Checking](#refinement-checking)
+
+[Mover Types](#mover-types)
 
 [Invariants](#invariants)
 
 [Linear Typing and Permissions](#linear-typing-and-permissions)
 
-[Handling Asynchronous Programs](#handling-asynchronous-programs)
+[Summarizing Asynchrony](#summarizing-asynchrony)
 
 # CIVL Embedding into Boogie
 
@@ -360,14 +362,6 @@ Notice that these yield-to-yield fragments are dynamically scoped.
 Going from preemtive to non-preemptive semantics simplifies the reasoning at one particular program layer.
 In going from the layer-0 program to the layer-2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invocations of atomic actions, thereby leading to simplified reasoning at the higher layer.
 
-## Refinement Checking
-
-We now explain how the annotation `{:refines "AtomicIncrBy2"}` is checked on the implementation of the procedure `IncrBy2`.
-This refinement checking justifies the transformation of the layer-1 program to the layer-2 program.
-CIVL checks that along each execution path in `IncrBy2` from entry to exit, there is exactly one yield-to-yield fragment that behaves like `AtomicIncrBy2`.
-(In this particular example, `IncrBy2` consists of only a single yield-to-yield fragment at layer 1.)
-All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
-The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
 
 # Introducing and Hiding Variables
 
@@ -475,10 +469,25 @@ the high program at layer 0 contains only `x`.
 the high program at layer 1 contains both `x` and `y`.
 * The low and high programs at layer 2 are identical and contain only `y`.
 
-# Justifying the Non-preemptive Semantics
+# Refinement Checking
 
-## Mover Types
+We now explain how the annotation `{:refines "AtomicIncrBy2"}` is checked on the implementation of the procedure `IncrBy2`.
+This refinement checking justifies the transformation of the layer-1 program to the layer-2 program.
+CIVL checks that along each execution path in `IncrBy2` from entry to exit, there is exactly one yield-to-yield fragment that behaves like `AtomicIncrBy2`.
+(In this particular example, `IncrBy2` consists of only a single yield-to-yield fragment at layer 1.)
+All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
+The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
 
+*TODO*
+- refining the SKIP action
+- interaction of global variable hiding with refinement checking
+- interaction of `:hide` annotation with refinement checking
+- `:refines` annotation on calls
+
+# Mover Types
+
+In this section, we explain how CIVL exploits commutativity of atomic actions to justify reasoning about non-preemptive semantics at each layer.
+CIVL allows each atomic action to be labeled by one of four mover types: `:atomic`, `:left`, `:right`, and `:both`.
 The following code illustrates mover types for atomic actions.
 
 ```
@@ -837,9 +846,9 @@ This annotation indicates that the actual input variable corresponding to `i` at
 Finally, the annotation `{:linear "perm"}` on an input parameter, although not used in the program above, would indicate that the
 correspoding actual input variable at the call site must be available before the call and remains available after the call.
 
-# Handling Asynchronous Programs
+# Summarizing Asynchrony
 
-* Get rid of async call by converting it to SKIP
+In this section, we focus on CIVL features for summarizing asynchronous procedure calls.
 
 ```
 procedure {:yields}{:layer 1} Service ()
@@ -850,22 +859,31 @@ procedure {:yields}{:layer 1} Service ()
 procedure {:yields}{:layer 0} Callback ();
 ```
 
-* Use {:sync} to synchronize the call exactly where it happens
+In the program above, the procedure `Service` makes an asynchronous call to the procedure `Callback`.
+Both procedures `Callback` and `Service` refine the `SKIP` action.
+At layer 1, the target of the asynchronous call to `Callback` in `Service` is rewritten to `SKIP`.
+Since `SKIP` does not have any visible effect, the CIVL refinement checker is able to show that `Service` refines `SKIP` despite the asynchronous call in its implementation.
+
+Next, we show how to synchronize an asynchronous call to an atomic action with visible side effects.
 
 ```
 var {:layer 0,2} x:int;
 
-procedure {:yields}{:layer 1}{:refines "A_Callback"} Service ()
+procedure {:yields}{:layer 1}{:refines "A_Inc"} Service ()
 {
   async call {:sync} Callback();
 }
 
-procedure {:both}{:layer 1,2} A_Callback ()
+procedure {:both}{:layer 1,2} A_Inc ()
 modifies x;
 { x := x + 1; }
-procedure {:yields}{:layer 0}{:refines "A_Callback"} Callback ();
+procedure {:yields}{:layer 0}{:refines "A_Inc"} Callback ();
 ```
 
+In the program above, the procedure `Service` makes an asynchronous call to the procedure `Callback`, similar to the first program shown in this section.
+The difference in this example is that both `Service` and `Callback` refine the atomic action `A_Inc` that increments a global variable `x`.
+Since `A_Inc` is a left mover (in fact, a both mover) it is possible to execute it exactly at the point of its asynchronous invocation.
+This intention is indicated by the `:sync` annotation on the asynchronous call.
 
 * Creating pending asyncs during refinement (introducing the type, variables, etc. in the pending async machinery, eliminating it)
 
@@ -900,4 +918,4 @@ procedure {:yields}{:layer 0}{:refines "A_Inc"} Callback ();
 
 * Eliminating pending asyncs (with induction)
 
-TODO: We can provide an example showing the use of triggers.  But that is not my preferred approach.
+*TODO*: We can provide an example showing the use of triggers.  But that is not my preferred approach.
