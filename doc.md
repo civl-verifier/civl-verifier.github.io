@@ -885,7 +885,9 @@ The difference in this example is that both `Service` and `Callback` refine the 
 Since `A_Inc` is a left mover (in fact, a both mover) it is possible to execute it exactly at the point of its asynchronous invocation.
 This intention is indicated by the `:sync` annotation on the asynchronous call.
 
-* Creating pending asyncs during refinement (introducing the type, variables, etc. in the pending async machinery, eliminating it)
+It is also possible to summarize the effect of a procedure that makes an asynchronous call to an atomic action via a pending async in the refined action.
+A pending async in an atomic action can be eliminated subsequently.
+The next examples illustrates the CIVL features that allow the user to create and eliminate pending asyncs.
 
 ```
 var {:layer 0,3} x:int;
@@ -902,7 +904,6 @@ procedure {:atomic}{:layer 1}
 {:IS "A_Inc"}{:elim "A_Inc"}
 A_Service() returns ({:pending_async "A_Inc"} PAs: [PA]int)
 {
-  PAs := MapConst(0);
   PAs[A_Inc()] := 1;
 }
 procedure {:yields}{:layer 0}{:refines "A_Service"} Service ()
@@ -916,6 +917,27 @@ modifies x;
 procedure {:yields}{:layer 0}{:refines "A_Inc"} Callback ();
 ```
 
-* Eliminating pending asyncs (with induction)
+A pending async is represented by a datatype with one constructor for each atomic action which will be used as a pending async.
+To prepare to use pending asyncs in a program, a declaration of the
+pending async datatype must be provided.
+In the program above, this datatype is `PA`.
+It has only one constructor `A_Inc` corresponding to the atomic action `A_Inc` declared later.
 
-*TODO*: We can provide an example showing the use of triggers.  But that is not my preferred approach.
+The procedure `Service` makes an asynchronous call to `Callback` which is abstracted by action `A_Inc` at layer 1 and higher.
+Since there is no `:sync` attribute on this asynchronous call, this call becomes a pending async in the refined action `A_Service`.
+To indicate that `A_Service` creates one or more pending asyncs, an output variable `PAs` of type `[PA]int` (representing a multiset of PA values) is declared for it.
+This variable is initialized to the singleton multiset containing `A_Inc()` as the only value.
+
+To complete the round trip, the pending async in the action `A_Service` is eliminated to get back the atomic action `A_Inc`.
+This elimination is indicated by the annotation
+
+```
+{:IS "A_Inc"}{:elim "A_Inc"}
+```
+
+on `A_Service`.
+
+Finally, the procedure `Client` which itself calls `Service` is shown to refine `A_Inc` also.
+The target of this call is rewritten to `A_Service` at layer 1 and to `A_Inc` at layer 2.
+
+*TODO*: Show an example to illustrate elimination of unbounded pending asyncs using induction.
