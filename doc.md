@@ -37,7 +37,7 @@ Types, functions, and constants are declared just as in Boogie.
 
 Global variables have a *layer range*.
 
-```
+```boogie
 var {:layer 0,10} x:int;
 ```
 
@@ -59,7 +59,7 @@ either `:atomic` (non-mover), `:right` (right mover), `:left` (left mover), or
 assert commands, called the *gate*, followed by a loop-free call-free block of
 code, denoting a *transition relation*.
 
-```
+```boogie
 procedure {:atomic}{:layer 2,5} FOO (i: int) returns (j: int)
 modifies x;
 {
@@ -76,7 +76,7 @@ of global variable `x`, and the value of input parameter `i` is added to `x`.
 
 Atomic actions support *backward assignments*.
 
-```
+```boogie
 p  := {:backward} x;
 ```
 
@@ -84,7 +84,7 @@ p  := {:backward} x;
 
 An introduction action has a single *layer number* (and no mover type).
 
-```
+```boogie
 procedure {:intro}{:layer 2} BAR (...) returns (...)
 {
   ...
@@ -96,7 +96,7 @@ procedure {:intro}{:layer 2} BAR (...) returns (...)
 A *yield invariant* has a layer number and a sequence of `requires` clauses (but
 no body).
 
-```
+```boogie
 procedure {:yield_invariant}{:layer 1} yield_x(i: int);
 requires i <= x;
 ```
@@ -116,7 +116,7 @@ pre/postconditions.
 An action procedure has a *disappearing layer* and a *refined atomic action*.
 The `modifies` clause is implicit and contains all global variables.
 
-```
+```boogie
 procedure {:yields}{:layer 1}{:refines "FOO"} foo (...) returns (...);
 ```
 
@@ -126,7 +126,7 @@ Action procedure `foo` *disappears* at layer `1` and *refines* the atomic action
 If no `:refines` attribute is given, then the procedure is called a
 *skip procedure* which refines the implicitly declared atomic action `SKIP`.
 
-```
+```boogie
 procedure {:both}{:layer 0,∞} SKIP () { }
 ```
 
@@ -135,7 +135,7 @@ procedure {:both}{:layer 0,∞} SKIP () { }
 A mover procedure has a *disappearing layer* and a *mover type*. The `modifies`
 clause has to be provided.
 
-```
+```boogie
 procedure {:yields}{:layer 1}{:right} foo (...) returns (...);
 modifies ...;
 ```
@@ -182,7 +182,7 @@ Loops might be annotated with `:cooperates`.
 Lemma procedures support the injection of (unverified) facts and proof hints. In
 particular, this is a useful alternative to global quantified axioms.
 
-```
+```boogie
 procedure {:lemma} Lemma_add_to_set (x: X, set: [X]bool);
 requires !set[x];
 ensures card(set[x := true]) == card(set) + 1;
@@ -202,7 +202,7 @@ Understanding this foundational aspect of CIVL will make it easier to understand
 
 ## A Simple Layered Concurrent Program
 
-```
+```boogie
 var {:layer 0,2} x: int;
 
 procedure {:intro} {:layer 0} Intro_x(val: int)
@@ -243,7 +243,7 @@ Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `
 
 ### Program at Layer 0
 
-```
+```boogie
 var x: int;
 
 procedure {:intro} Intro_x(val: int)
@@ -273,7 +273,7 @@ Preemptions can occur at entry into or exit from `Main`, `IncrBy2`, or `Incr`.
 
 ### Program at Layer 1
 
-```
+```boogie
 var x: int;
 
 procedure {:atomic} AtomicIncr(val: int)
@@ -298,7 +298,7 @@ Explanation for these concepts is presented later.
 
 ### Program at Layer 2
 
-```
+```boogie
 var x: int;
 
 procedure {:atomic} AtomicIncrBy2()
@@ -370,7 +370,7 @@ In this section, we describe how CIVL supports introduction and hiding of both g
 
 In the following example program, the usage of variable `x` is changed into the usage of variable `y`.
 
-```
+```boogie
 var {:layer 1,2} y:int;
 var {:layer 0,1} x:int;
 
@@ -490,7 +490,7 @@ In this section, we explain how CIVL exploits commutativity of atomic actions to
 CIVL allows each atomic action to be labeled by one of four mover types: `:atomic`, `:left`, `:right`, and `:both`.
 The following code illustrates mover types for atomic actions.
 
-```
+```boogie
 var {:layer 0,1} x:int;
 
 procedure {:yield_invariant} {:layer 1} yield_x(n: int);
@@ -534,7 +534,7 @@ The cooperation of a loop or a recursive procedure is indicated with the `:coope
 Sometimes it can be convenient to reason about a yielding procedure not by abstracting it to an atomic action.
 For this purpose, CIVL supports *mover procedures*, which we illustrate in the following example.
 
-```
+```boogie
 var {:layer 0,2} x : int;
 
 procedure {:yields} {:left} {:layer 1} {:cooperates} inc(i : int)
@@ -568,7 +568,7 @@ This annotation is applicable to `inc` at layer 1 at which `inc` is  supposed to
 Often, a program may use atomic actions that are neither right nor left movers and hence cannot be commuted with actions performed by other threads.
 However, it may be possible to create abstractions of the program's atomic actions so that important actions achieve a commuting mover type.
 
-```
+```boogie
 var {:layer 0,2} x:int;
 
 procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
@@ -614,7 +614,7 @@ location invariants and yield invariants.
 The following program introduces location invariants,
 the simplest specification idiom addressing interference.
 
-```
+```boogie
 var {:layer 0,1} x:int;
 
 procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
@@ -668,7 +668,7 @@ A yield invariant is a specification idiom that allows the programmer to factor 
 
 The code below is a variation of the previous example where `p` has been rewritten to use a yield invariant and `q` has been generalized to invoke `Incr` in a nondeterministic loop.
 
-```
+```boogie
 var {:layer 0,1} x:int;
 
 procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
@@ -721,7 +721,7 @@ Procedure `q` also uses `{:yield_loop "yield_x", old(x)}` to supply the noninter
 
 CIVL exploits linear typing to automatically inject logical assumptions when proving that a location or yield invariant is inteference-free or two actions commute with each other.
 
-```
+```boogie
 type {:linear "X"} Tid;
 var {:layer 0,1} a:[Tid]int;
 
@@ -768,7 +768,7 @@ The yield invariant `YieldInv` is proved interference-free against any yield-to-
 In some programs, it is helpful to make a distinction between the value stored in a variable and the permission associated with it.
 This increase in expressiveness is achieved by using a collector function from the type of the variable to the type of permissions.
 
-```
+```boogie
 type {:linear "perm"} {:datatype} Perm;
 function {:constructor} Left(i: int): Perm;
 function {:constructor} Right(i: int): Perm;
@@ -815,7 +815,7 @@ The return type of each of these functions is `[Perm]bool`, representing a set o
 There are two implicitly-defined and auto-generated collector functions for each permission type.
 These two collectors for the `Perm` type are shown below.
 
-```
+```boogie
 function PermCollector(x: Perm) : [Perm]bool {
   MapConst(false)[x := true]
 }
@@ -850,7 +850,7 @@ correspoding actual input variable at the call site must be available before the
 
 In this section, we focus on CIVL features for summarizing asynchronous procedure calls.
 
-```
+```boogie
 procedure {:yields}{:layer 1} Service ()
 {
   async call Callback();
@@ -866,7 +866,7 @@ Since `SKIP` does not have any visible effect, the CIVL refinement checker is ab
 
 Next, we show how to synchronize an asynchronous call to an atomic action with visible side effects.
 
-```
+```boogie
 var {:layer 0,2} x:int;
 
 procedure {:yields}{:layer 1}{:refines "A_Inc"} Service ()
@@ -889,7 +889,7 @@ It is also possible to summarize the effect of a procedure that makes an asynchr
 A pending async in an atomic action can be eliminated subsequently.
 The next examples illustrates the CIVL features that allow the user to create and eliminate pending asyncs.
 
-```
+```boogie
 var {:layer 0,3} x:int;
 
 type {:pending_async}{:datatype} PA;
@@ -931,7 +931,7 @@ This variable is initialized to the singleton multiset containing `A_Inc()` as t
 To complete the round trip, the pending async in the action `A_Service` is eliminated to get back the atomic action `A_Inc`.
 This elimination is indicated by the annotation
 
-```
+```boogie
 {:IS "A_Inc"}{:elim "A_Inc"}
 ```
 
