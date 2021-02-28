@@ -2,7 +2,7 @@
 title: Tutorial
 ---
 
-[CIVL Embedding into Boogie](#civl-embedding-into-boogie)
+[Civl Embedding into Boogie](#civl-embedding-into-boogie)
 
 [Layered Concurrent Programs](#layered-concurrent-programs)
 
@@ -18,13 +18,13 @@ title: Tutorial
 
 [Summarizing Asynchrony](#summarizing-asynchrony)
 
-# CIVL Embedding into Boogie
+# Civl Embedding into Boogie
 
-CIVL is an extension of Boogie. In Boogie, (almost every) abstract syntax tree
+Civl is an extension of Boogie. In Boogie, (almost every) abstract syntax tree
 node can be annotated with attributes of the form `{:attr e1, e2, ...}`, where
 `attr` is the attribute name and `e1, e2, ...` are expressions (denoting
-parameters of the attribute). CIVL programs are embedded in Boogie using
-attributes. This section provides a brief overview of CIVL's constructs and how
+parameters of the attribute). Civl programs are embedded in Boogie using
+attributes. This section provides a brief overview of Civl's constructs and how
 they are expressed using attributes.
 
 Running `boogie -attrHelp` prints all supported attributes.
@@ -47,7 +47,7 @@ layer* of `x`.
 
 ## Actions
 
-*Atomic actions* are the building blocks of a CIVL program, encapsulating all
+*Atomic actions* are the building blocks of a Civl program, encapsulating all
 accesses to global variables. *Introduction actions* are a particular kind of
 action used to give meaning to introduced variables.
 
@@ -193,12 +193,12 @@ that adding an element to a set increases the sets cardinality by one.
 
 # Layered Concurrent Programs
 
-CIVL takes as input a *layered concurrent program*.
+Civl takes as input a *layered concurrent program*.
 A layered concurrent program represents a sequence of concurrent programs, from most concrete (e.g., a low-level implementation) to most abstract (e.g., a high-level specification).
-CIVL verifies a layered concurrent program by verifying each layer and the connection between adjacent layers separately.
+Civl verifies a layered concurrent program by verifying each layer and the connection between adjacent layers separately.
 
 In this section we show a basic example to explain how a layered concurrent program represents a sequence of increasingly simpler concurrent programs.
-Understanding this foundational aspect of CIVL will make it easier to understand everything explained later.
+Understanding this foundational aspect of Civl will make it easier to understand everything explained later.
 
 ## A Simple Layered Concurrent Program
 
@@ -211,7 +211,7 @@ modifies x;
 
 procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int)
 {
-  call Intro_x();
+  call Intro_x(val);
 }
 procedure {:left} {:layer 1} AtomicIncr(val: int)
 modifies x;
@@ -325,7 +325,7 @@ In the example above, both global variable `x` and local variable `val` (the inp
 In a [later section](#introducing-and-hiding-variables) we show how variables can be introduced and hidden, such that different layers have different state.
 
 Control layering concerns the actions and yielding procedures that exist on each layer.
-As one of the most central aspects of CIVL, this controls how the bodies of yielding procedures changes across layers.
+As one of the most central aspects of Civl, this controls how the bodies of yielding procedures changes across layers.
 In a layered concurrent program, atomic actions cannot be called directly.
 Instead, yielding procedures can call other yielding procedures.
 For example, recall that `IncrBy2` in the layered program above makes calls to procedure `Incr`, as opposed to `AtomicIncr`.
@@ -343,15 +343,15 @@ Data layering and control layering obviously interact, since the variables acces
 
 ## Semantics
 
-CIVL considers two semantics for a concurrent program, the *preemptive* and the *non-preemptive* semantics.
+Civl considers two semantics for a concurrent program, the *preemptive* and the *non-preemptive* semantics.
 The preemptive semantics is the standard interleaving semantics, where context switches can happen at any time between the execution of atomic actions.
 This is the semantics that models the acutal behaviors of the concurrent program; the behaviors that we want to verify.
 By contrast, the non-preemptive semantics allows a context switch only at the entry to or exit from a procedure, and at an explicit `yield` statement.
 In particular, a context switch is not introduced just before or just after executing an atomic action.
 The non-preemptive semantics simplifies reasoning, because fewer interleavings have to be considered.
-CIVL justifies going from the preemptive to the non-preemptive semantics using [mover types](#mover-types).
+Civl justifies going from the preemptive to the non-preemptive semantics using [mover types](#mover-types).
 
-**Note:** `yield` statements should not be thought of modeling the desired context-switch locations in the program to verify. Rather, the placement of `yield` statements specifies the non-preemtive semantics, and CIVL checks that there are "sufficiently many" yields to use the non-preemtive semantics to reason about the preemptive semantics.
+**Note:** `yield` statements should not be thought of modeling the desired context-switch locations in the program to verify. Rather, the placement of `yield` statements specifies the non-preemtive semantics, and Civl checks that there are "sufficiently many" yields to use the non-preemtive semantics to reason about the preemptive semantics.
 
 A program location where a context switch may happen is called a *yield location*.
 Any execution path in a procedure from its entry to its exit is
@@ -366,7 +366,7 @@ In going from the layer-0 program to the layer-2 program, the set of yield locat
 # Introducing and Hiding Variables
 
 In a multi-layered refinement proof it is usually not only useful to change the granularity of atomicity, but also the state representation, i.e., the set of variables over which different program layers are expressed.
-In this section, we describe how CIVL supports introduction and hiding of both global and local variables.
+In this section, we describe how Civl supports introduction and hiding of both global and local variables.
 
 In the following example program, the usage of variable `x` is changed into the usage of variable `y`.
 
@@ -473,7 +473,7 @@ the high program at layer 1 contains both `x` and `y`.
 
 We now explain how the annotation `{:refines "AtomicIncrBy2"}` is checked on the implementation of the procedure `IncrBy2`.
 This refinement checking justifies the transformation of the layer-1 program to the layer-2 program.
-CIVL checks that along each execution path in `IncrBy2` from entry to exit, there is exactly one yield-to-yield fragment that behaves like `AtomicIncrBy2`.
+Civl checks that along each execution path in `IncrBy2` from entry to exit, there is exactly one yield-to-yield fragment that behaves like `AtomicIncrBy2`.
 (In this particular example, `IncrBy2` consists of only a single yield-to-yield fragment at layer 1.)
 All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
 The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
@@ -486,8 +486,8 @@ The visible state for `IncrBy2` includes only the global variable `x`. In genera
 
 # Mover Types
 
-In this section, we explain how CIVL exploits commutativity of atomic actions to justify reasoning about non-preemptive semantics at each layer.
-CIVL allows each atomic action to be labeled by one of four mover types: `:atomic`, `:left`, `:right`, and `:both`.
+In this section, we explain how Civl exploits commutativity of atomic actions to justify reasoning about non-preemptive semantics at each layer.
+Civl allows each atomic action to be labeled by one of four mover types: `:atomic`, `:left`, `:right`, and `:both`.
 The following code illustrates mover types for atomic actions.
 
 ```boogie
@@ -517,7 +517,7 @@ Consequently, the calls to `Incr` in `p` do not have to be separated by a yield.
 The calls to `Incr` in `p` commute with atomic actions executed by other threads so that they all appear to execute together.
 The use of mover types leads to fewer yields and more efficient verification of the body of `p`.
 
-In general, CIVL checks that the sequence of mover types of the atomic actions in every yield-to-yield fragment matches the expression `(right mover)*;(non-mover)?;(left-mover)*`, i.e., a sequence of right movers, followed by at most one non-mover, followed by a sequence of left movers.
+In general, Civl checks that the sequence of mover types of the atomic actions in every yield-to-yield fragment matches the expression `(right mover)*;(non-mover)?;(left-mover)*`, i.e., a sequence of right movers, followed by at most one non-mover, followed by a sequence of left movers.
 The mover types of atomic actions are validated using pairwise commutativity checks between all atomic actions that exist together on some layer.
 
 ## Cooperation
@@ -532,7 +532,7 @@ The cooperation of a loop or a recursive procedure is indicated with the `:coope
 ## Mover Procedures
 
 Sometimes it can be convenient to reason about a yielding procedure not by abstracting it to an atomic action.
-For this purpose, CIVL supports *mover procedures*, which we illustrate in the following example.
+For this purpose, Civl supports *mover procedures*, which we illustrate in the following example.
 
 ```boogie
 var {:layer 0,2} x : int;
@@ -606,7 +606,7 @@ possibility of interference among concurrently-executing procedures.
 Invariants are useful to express the possible interference and thus
 set up the context for refinement checking.
 
-In this section we explain the two main forms of invariants supported by CIVL:
+In this section we explain the two main forms of invariants supported by Civl:
 location invariants and yield invariants.
 
 ## Location Invariants
@@ -656,8 +656,8 @@ This annotation indicates that the location invariant is applicable to the concu
 To allow for the same location invariant to be reused across different layers, the layer annotation on a location invariant can be a list of layers, e.g. `{:layer 1,3,5}`.
 The verification goal in the program above is to establish that all location invariants at layer 1 hold.
 
-CIVL checks that a location invariant at a yield is established by the thread when control arrives at the yield.
-CIVL also checks that each location invariant is preserved by all yield-to-yield fragments in all procedures.
+Civl checks that a location invariant at a yield is established by the thread when control arrives at the yield.
+Civl also checks that each location invariant is preserved by all yield-to-yield fragments in all procedures.
 Together, these checks guarantee that it is safe to assume the location invariant when the thread resumes execution after the yield statement.
 All specifications in the program above are verified.
 
@@ -719,7 +719,7 @@ Procedure `q` also uses `{:yield_loop "yield_x", old(x)}` to supply the noninter
 
 # Linear Typing and Permissions
 
-CIVL exploits linear typing to automatically inject logical assumptions when proving that a location or yield invariant is inteference-free or two actions commute with each other.
+Civl exploits linear typing to automatically inject logical assumptions when proving that a location or yield invariant is inteference-free or two actions commute with each other.
 
 ```boogie
 type {:linear "X"} Tid;
@@ -748,7 +748,7 @@ requires a[tid] == v;
 
 In the program above, the declaration of type `Tid` has the annotation `{:linear "X"}`.
 This annotation indicates that values of type `Tid` are *permissions* that must be distributed among the variables of the program without duplication.
-As the program executes, the permissions stored in the program variables may be redistributed but not duplicated, a condition that is verified by CIVL.
+As the program executes, the permissions stored in the program variables may be redistributed but not duplicated, a condition that is verified by Civl.
 These permissions are associated with a *domain* called `X`; disjointness is enforced within a domain but not across domains.
 Different domains may use the same permission type.
 For example, if `Tid` is the permission type for a domain `Y` also, then we would use the declaration `type {:linear "X", "Y"} Tid;`.
@@ -831,14 +831,14 @@ The enforced invariant states that permissions obtained from two distinct variab
 
 A variable that is annotated with `{:linear "D"}` for any domain `D` is a linear variable.
 Permissions are stored in a subset of the program's linear variables and may be redistributed among them as the program executes.
-CIVL performs a dataflow analysis to compute at each program location a set of available variables such that permissions in these variables are guaranteed to be disjoint.
+Civl performs a dataflow analysis to compute at each program location a set of available variables such that permissions in these variables are guaranteed to be disjoint.
 The set of available variables at a program location contains every global linear variable but may contain only a subset of the local linear variables in scope.
 
 Consider the atomic action `AtomicEnterBarrier` in the program above.
 Input `i` of this action is annotated `{:linear_in "perm"}` indicating that the actual input variable corresponding to `i` at the call site must be available before the call and becomes unavailable after the call.
 Output `p` is annotated `{:linear "perm"}` indicating that the actual output variable corresponding to `p` at the call site becomes available after the call.
 The code of `AtomicEnterBarrier` redistributes the permissions stored in global variable `mutatorsInBarrier` and the input `i` among `mutatorsInBarrier` and output `p`.
-CIVL checks that this redistribution does not cause duplication.
+Civl checks that this redistribution does not cause duplication.
 
 The atomic action `AtomicWaitForBarrierRelease` has an input `i` annotated `{:linear_out "perm"}`.
 This annotation indicates that the actual input variable corresponding to `i` at the call site will become available after the call.
@@ -848,7 +848,7 @@ correspoding actual input variable at the call site must be available before the
 
 # Summarizing Asynchrony
 
-In this section, we focus on CIVL features for summarizing asynchronous procedure calls.
+In this section, we focus on Civl features for summarizing asynchronous procedure calls.
 
 ```boogie
 procedure {:yields}{:layer 1} Service ()
@@ -862,7 +862,7 @@ procedure {:yields}{:layer 0} Callback ();
 In the program above, the procedure `Service` makes an asynchronous call to the procedure `Callback`.
 Both procedures `Callback` and `Service` refine the `SKIP` action.
 At layer 1, the target of the asynchronous call to `Callback` in `Service` is rewritten to `SKIP`.
-Since `SKIP` does not have any visible effect, the CIVL refinement checker is able to show that `Service` refines `SKIP` despite the asynchronous call in its implementation.
+Since `SKIP` does not have any visible effect, the Civl refinement checker is able to show that `Service` refines `SKIP` despite the asynchronous call in its implementation.
 
 Next, we show how to synchronize an asynchronous call to an atomic action with visible side effects.
 
@@ -887,7 +887,7 @@ This intention is indicated by the `:sync` annotation on the asynchronous call.
 
 It is also possible to summarize the effect of a procedure that makes an asynchronous call to an atomic action via a pending async in the refined action.
 A pending async in an atomic action can be eliminated subsequently.
-The next examples illustrates the CIVL features that allow the user to create and eliminate pending asyncs.
+The next examples illustrates the Civl features that allow the user to create and eliminate pending asyncs.
 
 ```boogie
 var {:layer 0,3} x:int;

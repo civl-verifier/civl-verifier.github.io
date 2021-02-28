@@ -1,4 +1,4 @@
-CIVL is a verifier for concurrent programs following two core design principles.
+Civl is a verifier for concurrent programs following two core design principles.
 
 * **Layered Refinement** (instead of monolithic proofs): Programs are verified
   across multiple layers of refinement, where each refinement step corresponds
@@ -14,7 +14,7 @@ CIVL is a verifier for concurrent programs following two core design principles.
   are compactly expressed together as a single syntactic unit in a
   *[layered concurrent program](https://doi.org/10.1007/978-3-319-96145-3_5)*.
 
-CIVL supports established verification techniques for
+Civl supports established verification techniques for
 concurrent programs, including
 *stepwise-refinement*,
 *[gated atomic actions](https://doi.org/10.1145/1480881.1480885)*,
@@ -27,20 +27,20 @@ verification techniques and methodologies, like
 *[inductive sequentialization](https://doi.org/10.1145/3385412.3385980)*,
 and *[synchronization](https://dx.doi.org/10.4230/LIPIcs.CONCUR.2018.21)*.
 
-Under the hood, CIVL is built on top of
+Under the hood, Civl is built on top of
 [Boogie](https://github.com/boogie-org/boogie), a verifier for sequential
-programs. CIVL decomposes proof checking into modular verification conditions
+programs. Civl decomposes proof checking into modular verification conditions
 that are automatically verified by a theorem prover/SMT solver.
 
 # Getting Started
 
-CIVL is implemented directly as part of [Boogie](https://github.com/boogie-org/boogie),
+Civl is implemented directly as part of [Boogie](https://github.com/boogie-org/boogie),
 which can be installed from a [NuGet package](https://www.nuget.org/packages/Boogie) or
 [built from source](https://github.com/boogie-org/boogie#building), and requires the
 [Z3](https://github.com/Z3Prover/z3) theorem prover.
 
-To verify a CIVL program, simply invoke Boogie on the program as follows
-(Boogie automatically detects CIVL programs and internally sets the options
+To verify a Civl program, simply invoke Boogie on the program as follows
+(Boogie automatically detects Civl programs and internally sets the options
 `-useArrayTheory -lib -monomorphize`):
 
 ```
@@ -49,14 +49,14 @@ $ boogie Test/civl/ticket.bpl
 Boogie program verifier finished with 19 verified, 0 errors
 ```
 
-To inspect the plain Boogie program that CIVL generates, use the option `-civlDesugaredFile:<file.bpl>`.
+To inspect the plain Boogie program that Civl generates, use the option `-civlDesugaredFile:<file.bpl>`.
 Further available options are listed by `-help`.
 
 # Resources
 
 ## Examples
 
-CIVL comes with an extensive [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl)
+Civl comes with an extensive [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl)
 of example programs, including
 a [verified garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/GC.bpl),
 the [VerifiedFT dynamic race detector](https://github.com/boogie-org/boogie/blob/master/Test/civl/verified-ft.bpl),
@@ -101,7 +101,7 @@ like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 ## Talks
 
 * [Refinement for Structured Concurrent Programs](https://youtu.be/anKt3qjo5as?t=1306) @ CAV 2020
-* [CIVL-ized Concurrent Programs](https://youtu.be/f8Cjpt-rzxE?t=2081) @ [DSV 2020](https://smackers.github.io/democratizing-software-verification-workshop-2020/)
+* [Civl-ized Concurrent Programs](https://youtu.be/f8Cjpt-rzxE?t=2081) @ [DSV 2020](https://smackers.github.io/democratizing-software-verification-workshop-2020/)
 * [Inductive Sequentialization of Asynchronous Programs](https://www.youtube.com/watch?v=hShxxspWeb8) @ PLDI 2020
 
 # Team
@@ -109,4 +109,4 @@ like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 * [Bernhard Kragl (IST Austria)](https://bkragl.github.io)
 * [Shaz Qadeer (Novi)](https://scholar.google.com/citations?user=EqIVfYcAAAAJ&hl=en)
 
-If you are interested in CIVL, please get in touch!
+If you are interested in Civl, please get in touch!
