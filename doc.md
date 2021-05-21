@@ -526,7 +526,7 @@ It is possible for the computation in a yield-to-yield fragment to be unbounded,
 e.g., due to the presence of a loop.
 The soundness of non-preemptive semantics requires that such a loop must be cooperative,
 i.e., there is a suitable extension of any finite prefix of the loop that exits the loop.
-Cooperation is identical to termination for deterministic an nonblocking loops but different in general.
+Cooperation is identical to termination for deterministic and nonblocking loops but different in general.
 The cooperation of a loop or a recursive procedure is indicated with the `:cooperates` attribute.
 
 ## Mover Procedures
@@ -786,7 +786,8 @@ var {:layer 0,1} barrierOn: bool;
 var {:layer 0,1} barrierCounter: int;
 var {:layer 0,1} {:linear "perm"} mutatorsInBarrier: [int]bool;
 
-procedure {:atomic} {:layer 1} AtomicEnterBarrier({:linear_in "perm"} i: int) returns ({:linear "perm"} p: Perm)
+procedure {:atomic} {:layer 1} AtomicEnterBarrier({:linear_in "perm"} i: int)
+returns ({:linear "perm"} p: Perm)
 modifies barrierCounter, mutatorsInBarrier;
 {
     assert IsMutator(i);
@@ -795,7 +796,9 @@ modifies barrierCounter, mutatorsInBarrier;
     p := Right(i);
 }
 
-procedure {:atomic} {:layer 1} AtomicWaitForBarrierRelease({:linear_in "perm"} p: Perm, {:linear_out "perm"} i: int)
+procedure {:atomic} {:layer 1} AtomicWaitForBarrierRelease(
+  {:linear_in "perm"} p: Perm,
+  {:linear_out "perm"} i: int)
 modifies barrierCounter, mutatorsInBarrier;
 {
     assert p == Right(i) && mutatorsInBarrier[i];
