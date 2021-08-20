@@ -74,7 +74,7 @@ distributed protocols
 [Chang-Roberts](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/ChangRoberts.bpl)),
 and many more.
 
-## [Documentation (under construction)](doc)
+## [Documentation](doc)
 
 We also recommend looking at simple
 examples from our [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl),
@@ -82,6 +82,9 @@ like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 
 ## Publications
 
+* [The Civl Verifier](https://bkragl.github.io/papers/fmcad2021.pdf)\
+  Bernhard Kragl, Shaz Qadeer\
+  FMCAD 2021
 * [Refinement for Structured Concurrent Programs](https://bkragl.github.io/papers/cav2020.pdf)\
   Bernhard Kragl, Shaz Qadeer, Thomas A. Henzinger\
   CAV 2020
