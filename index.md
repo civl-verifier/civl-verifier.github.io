@@ -82,19 +82,19 @@ like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 
 ## Publications
 
-* [The Civl Verifier](https://bkragl.github.io/papers/fmcad2021.pdf)\
+* [The Civl Verifier](papers/fmcad2021.pdf)\
   Bernhard Kragl, Shaz Qadeer\
   FMCAD 2021
-* [Refinement for Structured Concurrent Programs](https://bkragl.github.io/papers/cav2020.pdf)\
+* [Refinement for Structured Concurrent Programs](papers/cav2020.pdf)\
   Bernhard Kragl, Shaz Qadeer, Thomas A. Henzinger\
   CAV 2020
-* [Inductive Sequentialization of Asynchronous Programs](https://bkragl.github.io/papers/pldi2020.pdf)\
+* [Inductive Sequentialization of Asynchronous Programs](papers/pldi2020.pdf)\
   Bernhard Kragl, Constantin Enea, Thomas A. Henzinger, Suha Orhun Mutluergil, Shaz Qadeer\
   PLDI 2020
-* [Synchronizing the Asynchronous](https://bkragl.github.io/papers/concur2018.pdf)\
+* [Synchronizing the Asynchronous](papers/concur2018.pdf)\
   Bernhard Kragl, Shaz Qadeer, Thomas A. Henzinger\
   CONCUR 2018
-* [Layered Concurrent Programs](https://bkragl.github.io/papers/cav2018.pdf)\
+* [Layered Concurrent Programs](papers/cav2018.pdf)\
   Bernhard Kragl, Shaz Qadeer\
   CAV 2018
 * [Automated and Modular Refinement Reasoning for Concurrent Programs](https://www.microsoft.com/en-us/research/publication/automated-and-modular-refinement-reasoning-for-concurrent-programs/)\
