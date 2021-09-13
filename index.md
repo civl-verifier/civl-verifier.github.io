@@ -103,6 +103,8 @@ like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 
 ## Talks
 
+* [Reifying Concurrent Programs](
+https://bbb-lb.math.univ-paris-diderot.fr/playback/presentation/2.3/972f09fb375ed24cd2f676ef7a70c4bbea355455-1614264363134?meetingId=972f09fb375ed24cd2f676ef7a70c4bbea355455-1614264363134) @ University of Paris VII
 * [Refinement for Structured Concurrent Programs](https://youtu.be/anKt3qjo5as?t=1306) @ CAV 2020
 * [Civl-ized Concurrent Programs](https://youtu.be/f8Cjpt-rzxE?t=2081) @ [DSV 2020](https://smackers.github.io/democratizing-software-verification-workshop-2020/)
 * [Inductive Sequentialization of Asynchronous Programs](https://www.youtube.com/watch?v=hShxxspWeb8) @ PLDI 2020
