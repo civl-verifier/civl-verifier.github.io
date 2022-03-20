@@ -74,8 +74,9 @@ distributed protocols
 [Chang-Roberts](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/ChangRoberts.bpl)),
 and many more.
 
-## [Documentation](doc)
+## Documentation
 
+We have a [tutorial](doc) to help users get started with Civl.
 We also recommend looking at simple
 examples from our [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl),
 like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
