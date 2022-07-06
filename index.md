@@ -112,7 +112,7 @@ like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 
 # Team
 
-* [Bernhard Kragl (IST Austria)](https://bkragl.github.io)
-* [Shaz Qadeer (Novi)](https://scholar.google.com/citations?user=EqIVfYcAAAAJ&hl=en)
+* [Bernhard Kragl](https://bkragl.github.io)
+* [Shaz Qadeer](https://scholar.google.com/citations?user=EqIVfYcAAAAJ&hl=en)
 
 If you are interested in Civl, please get in touch!
