@@ -888,9 +888,16 @@ The difference in this example is that both `Service` and `Callback` refine the 
 Since `A_Inc` is a left mover (in fact, a both mover) it is possible to execute it exactly at the point of its asynchronous invocation.
 This intention is indicated by the `:sync` annotation on the asynchronous call.
 
-It is also possible to summarize the effect of a procedure that makes an asynchronous call to an atomic action via a pending async in the refined action.
-A pending async in an atomic action can be eliminated subsequently.
-The next examples illustrates the Civl features that allow the user to create and eliminate pending asyncs.
+## Pending asyncs
+As described in the last section, Civl allows a procedure to make an asynchronous procedure call.
+Additionally and symmetrically, Civl also allows an atomic action to make an asynchronous call to an atomic action.
+Such a call is called a pending async, for brevity, to indicate that the effect of the asynchronous call is pending and becomes visible only once the side effects of the caller atomic action have been applied.
+
+Pending asyncs increase the expressiveness of refinement in Civl.
+Without pending asyncs, summarizing the effect of a procedure that makes an asynchronous procedure call required synchronization of the call.
+With pending asyncs, it is possible to achieve this summarization via a pending async in the refined action.
+Civl also allows a pending async in an atomic action to be eliminated subsequently.
+The next example illustrates the Civl features that allow the user to create and eliminate pending asyncs.
 
 ```boogie
 var {:layer 0,3} x:int;
@@ -939,8 +946,12 @@ This elimination is indicated by the annotation
 ```
 
 on `A_Service`.
+This annotation indicates that by eliminating the pending async to to `A_Inc` from `A_Service`, we obtain an atomic action that refines `A_Inc` itself.
 
 Finally, the procedure `Client` which itself calls `Service` is shown to refine `A_Inc` also.
 The target of this call is rewritten to `A_Service` at layer 1 and to `A_Inc` at layer 2.
 
-*TODO*: Show an example to illustrate elimination of unbounded pending asyncs using induction.
+## Inductive sequentialization
+This section shows how to introduce and eliminate unboundedly many pending asyncs.
+
+TBD
