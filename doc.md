@@ -12,7 +12,7 @@ title: Tutorial
 
 [Mover Types](#mover-types)
 
-[Invariants](#invariants)
+[Yield Invariants](#yield-invariants)
 
 [Linear Typing and Permissions](#linear-typing-and-permissions)
 
@@ -73,12 +73,6 @@ Atomic action `FOO` is *available* from layer `2` up to layer `5` (*introduced*
 at layer `2` and *disappearing* at layer `5`). The gate of `FOO` is `x > 0`, and the
 transition relation states that output parameter `j` returns the current value
 of global variable `x`, and the value of input parameter `i` is added to `x`.
-
-Atomic actions support *backward assignments*.
-
-```boogie
-p  := {:backward} x;
-```
 
 ### Introduction Actions
 
@@ -147,7 +141,6 @@ additional commands.
 
 * **Parallel call**: `par i := A(j) | k := B(l)`
 * **Asynchronous call**: `async call A(i)`
-* **Yield point**: `yield`
 
 ### Specifications
 
@@ -174,8 +167,6 @@ A call can be annotated with `:refines`.
 
 Every loop is either *non-yielding* or *yielding* (denoted with `:yields` on a
 loop invariant).
-
-Loops might be annotated with `:cooperates`.
 
 ## Lemma Procedures
 
@@ -599,74 +590,13 @@ In the code above, atomic actions `AtomicIncr` and `AtomicRead` at layer 1 are n
 At layer 2, we create abstractions `AbstractAtomicIncr` and `AbstractAtomicRead` of `AtomicIncr` and `AtomicRead` respectively.
 The abstractions are chosen so that `AbstractAtomicIncr` is a right mover and `AbstractAtomicRead` is a left mover.
 
-# Invariants
+# Yield Invariants
 
 Reasoning about concurrent programs is difficult because of the
 possibility of interference among concurrently-executing procedures.
 Invariants are useful to express the possible interference and thus
 set up the context for refinement checking.
-
-In this section we explain the two main forms of invariants supported by Civl:
-location invariants and yield invariants.
-
-## Location Invariants
-
-The following program introduces location invariants,
-the simplest specification idiom addressing interference.
-
-```boogie
-var {:layer 0,1} x:int;
-
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
-procedure {:atomic} {:layer 1} AtomicIncr(val: int)
-modifies x;
-{ x := x + val; }
-
-procedure {:yields} {:layer 1} p()
-requires {:layer 1} x >= 5;
-ensures  {:layer 1} x >= 8;
-{
-  call Incr(1);
-  yield; assert {:layer 1} x >= 6;
-  call Incr(1);
-  yield; assert {:layer 1} x >= 7;
-  call Incr(1);
-}
-
-procedure {:yields} {:layer 1} q()
-{
-  call Incr(3);
-}
-```
-
-The program above has two yielding procedures, `p` and `q`, each
-accessing the global variable `x`.
-Accesses to `x` are encapsulated in the atomic action `AtomicIncr`,
-which increments `x` by the amount supplied in the parameter `val`.
-`AtomicIncr` is refined by the procedure `Incr`, whose implementation
-is not provided.
-
-A `yield` statement indicates that the executing thread may be suspended to allow another concurrently-executing thread to run.
-A `yield` statement may be followed by a sequence of `assert` statements that collectively form the location invariant for the location of the `yield` statement.
-The `requires` annotations provide the location invariant for the implicit yield at procedure entry.
-Similarly, the `ensures` annotations provide the location invariant for the implicit yield at procedure exit.
-
-Each location invariant in the program above has a layer annotation `{:layer 1}`.
-This annotation indicates that the location invariant is applicable to the concurrent program at layer 1.
-To allow for the same location invariant to be reused across different layers, the layer annotation on a location invariant can be a list of layers, e.g. `{:layer 1,3,5}`.
-The verification goal in the program above is to establish that all location invariants at layer 1 hold.
-
-Civl checks that a location invariant at a yield is established by the thread when control arrives at the yield.
-Civl also checks that each location invariant is preserved by all yield-to-yield fragments in all procedures.
-Together, these checks guarantee that it is safe to assume the location invariant when the thread resumes execution after the yield statement.
-All specifications in the program above are verified.
-
-## Yield Invariants
-
-Location invariants are useful but could be verbose due to repetition of similar logical facts at various control locations.
-A yield invariant is a specification idiom that allows the programmer to factor out similar noninterference specifications into a single named and parameterized specification.
-
-The code below is a variation of the previous example where `p` has been rewritten to use a yield invariant and `q` has been generalized to invoke `Incr` in a nondeterministic loop.
+Civl introduces yield invariants, a specification idiom that allows the programmer to factor out similar noninterference specifications into a single named and parameterized specification.
 
 ```boogie
 var {:layer 0,1} x:int;
@@ -950,8 +880,3 @@ This annotation indicates that by eliminating the pending async to to `A_Inc` fr
 
 Finally, the procedure `Client` which itself calls `Service` is shown to refine `A_Inc` also.
 The target of this call is rewritten to `A_Service` at layer 1 and to `A_Inc` at layer 2.
-
-## Inductive sequentialization
-This section shows how to introduce and eliminate unboundedly many pending asyncs.
-
-TBD

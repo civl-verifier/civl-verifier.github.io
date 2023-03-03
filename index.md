@@ -18,8 +18,8 @@ Civl supports established verification techniques for
 concurrent programs, including
 *stepwise-refinement*,
 *[gated atomic actions](https://doi.org/10.1145/1480881.1480885)*,
-*[mover types](https://doi.org/10.1145/781131.781169)* (à la Lipton's reduction),
-*inductive invariants* (noninterference reasoning à la Owicki-Gries and rely-guarantee),
+*[mover types](https://doi.org/10.1145/781131.781169)*,
+*inductive invariants*, *noninterference reasoning*,
 and *linear permissions*.
 It also incorporates newer
 verification techniques and methodologies, like
@@ -27,7 +27,7 @@ verification techniques and methodologies, like
 *[inductive sequentialization](https://doi.org/10.1145/3385412.3385980)*,
 and *[synchronization](https://dx.doi.org/10.4230/LIPIcs.CONCUR.2018.21)*.
 
-Under the hood, Civl is built on top of
+Civl is built on top of
 [Boogie](https://github.com/boogie-org/boogie), a verifier for sequential
 programs. Civl decomposes proof checking into modular verification conditions
 that are automatically verified by a theorem prover/SMT solver.
@@ -54,32 +54,25 @@ Further available options are listed by `-help`.
 
 # Resources
 
-## Examples
-
-Civl comes with an extensive [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl)
-of example programs, including
+We have a [tutorial](doc) to help users get started with Civl.
+We also recommend looking at simple
+examples from our [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl),
+like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
+Other notable Civl examples include
 a [verified garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/GC.bpl),
-the [VerifiedFT dynamic race detector](https://github.com/boogie-org/boogie/blob/master/Test/civl/verified-ft.bpl),
 lock implementations
 ([spinlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/lock-introduced.bpl),
 [ticket](https://github.com/boogie-org/boogie/blob/master/Test/civl/ticket.bpl),
 [seqlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/seqlock.bpl)),
 concurrent data structures
 ([treiber stack](https://github.com/boogie-org/boogie/blob/master/Test/civl/treiber-stack.bpl),
-[work stealing queue](https://github.com/boogie-org/boogie/blob/master/Test/civl/wsq.bpl)),
+[FastTrack vector clocks](https://github.com/boogie-org/boogie/blob/master/Test/civl/verified-ft.bpl)),
 distributed protocols
 ([Paxos](https://github.com/boogie-org/boogie/tree/master/Test/civl/inductive-sequentialization/paxos),
 [two-phase commit](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/2PC.bpl) /
 [2PC](https://github.com/boogie-org/boogie/blob/master/Test/civl/async/2pc.bpl),
 [Chang-Roberts](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/ChangRoberts.bpl)),
 and many more.
-
-## Documentation
-
-We have a [tutorial](doc) to help users get started with Civl.
-We also recommend looking at simple
-examples from our [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl),
-like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 
 ## Publications
 
