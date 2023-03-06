@@ -134,7 +134,7 @@ procedure {:yields}{:layer 1}{:right} foo (...) returns (...);
 modifies ...;
 ```
 
-### Implementations
+## Implementations
 
 The implementations (i.e., bodies) of yielding procedures support the following
 additional commands.
@@ -142,7 +142,7 @@ additional commands.
 * **Parallel call**: `par i := A(j) | k := B(l)`
 * **Asynchronous call**: `async call A(i)`
 
-### Specifications
+## Specifications
 
 Every precondition, postcondition, assertion, and loop invariant is annotated
 with a sequence of layer numbers (`{:layer l1, l2, ...}`).
@@ -151,7 +151,12 @@ Yield invariants can be invoked in calls, parallel calls, as preconditions
 (`:yield_requires`), postconditions (`:yield_requires`), and loop invariants
 (`:yield_loop`).
 
-### Parameters
+Every loop is either *non-yielding* or *yielding* (denoted with `:yields` on a
+loop invariant).
+
+A call can be annotated with `:refines`.
+
+## Parameters
 
 Every input and output parameter of a yielding procedure has a layer range.
 Implicitly, it ranges from the lowest layer up to the disappearing layer of the
@@ -160,13 +165,6 @@ procedure. A different layer range can be assigned to every parameter using the
 
 Parameters of action procedures can be annotated with `:hide` to declare that
 the parameter does not occur in the refined atomic action.
-
-### Refinement
-
-A call can be annotated with `:refines`.
-
-Every loop is either *non-yielding* or *yielding* (denoted with `:yields` on a
-loop invariant).
 
 ## Lemma Procedures
 
@@ -196,27 +194,27 @@ Understanding this foundational aspect of Civl will make it easier to understand
 ```boogie
 var {:layer 0,2} x: int;
 
-procedure {:intro} {:layer 0} Intro_x(val: int)
+procedure {:intro}{:layer 0} Intro_x(val: int)
 modifies x;
 { x := x + val; }
 
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int)
+procedure {:yields}{:layer 0}{:refines "AtomicIncr"} Incr(val: int)
 {
   call Intro_x(val);
 }
-procedure {:left} {:layer 1} AtomicIncr(val: int)
+procedure {:left}{:layer 1} AtomicIncr(val: int)
 modifies x;
 { x := x + val; }
 
-procedure {:yields} {:layer 1} {:refines "AtomicIncrBy2"} IncrBy2()
+procedure {:yields}{:layer 1}{:refines "AtomicIncrBy2"} IncrBy2()
 {
   par Incr(1) | Incr(1);
 }
-procedure {:layer 2} {:atomic} AtomicIncrBy2()
+procedure {:layer 2}{:atomic} AtomicIncrBy2()
 modifies x;
 { x := x + 2; }
 
-procedure {:yields} {:layer 2} Main()
+procedure {:yields}{:layer 2} Main()
 {
   call IncrBy2();
 }
@@ -337,18 +335,20 @@ Data layering and control layering obviously interact, since the variables acces
 Civl considers two semantics for a concurrent program, the *preemptive* and the *non-preemptive* semantics.
 The preemptive semantics is the standard interleaving semantics, where context switches can happen at any time between the execution of atomic actions.
 This is the semantics that models the acutal behaviors of the concurrent program; the behaviors that we want to verify.
-By contrast, the non-preemptive semantics allows a context switch only at the entry to or exit from a procedure, and at an explicit `yield` statement.
+By contrast, the non-preemptive semantics allows a context switch only at the entry to or exit from a procedure
+and at a call to a [yield invariant](#yield-invariants).
 In particular, a context switch is not introduced just before or just after executing an atomic action.
 The non-preemptive semantics simplifies reasoning, because fewer interleavings have to be considered.
 Civl justifies going from the preemptive to the non-preemptive semantics using [mover types](#mover-types).
-
-**Note:** `yield` statements should not be thought of modeling the desired context-switch locations in the program to verify. Rather, the placement of `yield` statements specifies the non-preemtive semantics, and Civl checks that there are "sufficiently many" yields to use the non-preemtive semantics to reason about the preemptive semantics.
 
 A program location where a context switch may happen is called a *yield location*.
 Any execution path in a procedure from its entry to its exit is
 partitioned into a sequence of execution fragments from one yield location to the next.
 Each such execution fragment is called a *yield-to-yield fragment*.
 Notice that these yield-to-yield fragments are dynamically scoped.
+Yield locations specify the non-preemtive semantics.
+Civl checks that there are "sufficiently many" yield locations such that reasoning about the non-preemtive semantics
+is sufficient to reason about the preemptive semantics.
 
 Going from preemtive to non-preemptive semantics simplifies the reasoning at one particular program layer.
 In going from the layer-0 program to the layer-2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invocations of atomic actions, thereby leading to simplified reasoning at the higher layer.
@@ -365,48 +365,48 @@ In the following example program, the usage of variable `x` is changed into the 
 var {:layer 1,2} y:int;
 var {:layer 0,1} x:int;
 
-procedure {:atomic} {:layer 2} atomic_read_y () returns (v:int)
+procedure {:atomic}{:layer 2} atomic_read_y () returns (v:int)
 { v := y; }
-procedure {:yields} {:layer 1} {:refines "atomic_read_y"}  read_y () returns (v:int)
+procedure {:yields}{:layer 1}{:refines "atomic_read_y"}  read_y () returns (v:int)
 requires {:layer 1} x == y;
 {
   call v := read_x();
 }
 
-procedure {:atomic} {:layer 2} atomic_write_y (y':int)
+procedure {:atomic}{:layer 2} atomic_write_y (y':int)
 modifies y;
 { y := y'; }
-procedure {:yields} {:layer 1} {:refines "atomic_write_y"}  write_y (y':int)
+procedure {:yields}{:layer 1}{:refines "atomic_write_y"}  write_y (y':int)
 {
   call write_x(y');
   call set_y_to_x();
 }
 
-procedure {:intro} {:layer 1} set_y_to_x ()
+procedure {:intro}{:layer 1} set_y_to_x ()
 modifies y;
 {
   y := x;
 }
 
-procedure {:atomic} {:layer 1} atomic_read_x () returns (v:int)
+procedure {:atomic}{:layer 1} atomic_read_x () returns (v:int)
 { v := x; }
-procedure {:yields} {:layer 0} {:refines "atomic_read_x"} read_x () returns (v:int)
+procedure {:yields}{:layer 0}{:refines "atomic_read_x"} read_x () returns (v:int)
 {
   call v := intro_read_x();
 }
 
-procedure {:atomic} {:layer 1} atomic_write_x (x':int)
+procedure {:atomic}{:layer 1} atomic_write_x (x':int)
 modifies x;
 { x := x'; }
-procedure {:yields} {:layer 0} {:refines "atomic_write_x"} write_x (x':int)
+procedure {:yields}{:layer 0}{:refines "atomic_write_x"} write_x (x':int)
 {
   call intro_write_x(x');
 }
 
-procedure {:intro} {:layer 0} intro_read_x () returns (v:int)
+procedure {:intro}{:layer 0} intro_read_x () returns (v:int)
 { v := x; }
 
-procedure {:intro} {:layer 0} intro_write_x (x':int)
+procedure {:intro}{:layer 0} intro_write_x (x':int)
 modifies x;
 { x := x'; }
 ```
@@ -484,15 +484,15 @@ The following code illustrates mover types for atomic actions.
 ```boogie
 var {:layer 0,1} x:int;
 
-procedure {:yield_invariant} {:layer 1} yield_x(n: int);
+procedure {:yield_invariant}{:layer 1} yield_x(n: int);
 requires x >= n;
 
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
+procedure {:yields}{:layer 0}{:refines "AtomicIncr"} Incr(val: int);
 procedure {:both} {:layer 1} AtomicIncr(val: int)
 modifies x;
 { x := x + val; }
 
-procedure {:yields} {:layer 1}
+procedure {:yields}{:layer 1}
 {:yield_requires "yield_x", 5}
 {:yield_ensures "yield_x", 8}
 p()
@@ -511,15 +511,6 @@ The use of mover types leads to fewer yields and more efficient verification of 
 In general, Civl checks that the sequence of mover types of the atomic actions in every yield-to-yield fragment matches the expression `(right mover)*;(non-mover)?;(left-mover)*`, i.e., a sequence of right movers, followed by at most one non-mover, followed by a sequence of left movers.
 The mover types of atomic actions are validated using pairwise commutativity checks between all atomic actions that exist together on some layer.
 
-## Cooperation
-
-It is possible for the computation in a yield-to-yield fragment to be unbounded,
-e.g., due to the presence of a loop.
-The soundness of non-preemptive semantics requires that such a loop must be cooperative,
-i.e., there is a suitable extension of any finite prefix of the loop that exits the loop.
-Cooperation is identical to termination for deterministic and nonblocking loops but different in general.
-The cooperation of a loop or a recursive procedure is indicated with the `:cooperates` attribute.
-
 ## Mover Procedures
 
 Sometimes it can be convenient to reason about a yielding procedure not by abstracting it to an atomic action.
@@ -528,7 +519,7 @@ For this purpose, Civl supports *mover procedures*, which we illustrate in the f
 ```boogie
 var {:layer 0,2} x : int;
 
-procedure {:yields} {:left} {:layer 1} {:cooperates} inc(i : int)
+procedure {:yields}{:left}{:layer 1} inc(i : int)
 modifies x;
 requires {:layer 1} i >= 0;
 ensures {:layer 1} x == old(x) + i;
@@ -540,7 +531,7 @@ ensures {:layer 1} x == old(x) + i;
   }
 }
 
-procedure {:yields} {:layer 0} {:refines "atomic_inc_x"} inc_x(n: int);
+procedure {:yields}{:layer 0}{:refines "atomic_inc_x"} inc_x(n: int);
 procedure {:both} {:layer 1} atomic_inc_x(n: int)
 modifies x;
 { x := x + n; }
@@ -551,9 +542,6 @@ This annotation is applicable to `inc` only at its disappearing layer 1.
 This annotation indicates that, at layer 1, any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
 A mover procedure that diappears at layer `n` can only be called by yielding procedures that also disappear at layer `n`.
 
-The procedure `inc` in the program above is annotated with the attribute `:cooperates`.
-This annotation is applicable to `inc` at layer 1 at which `inc` is  supposed to execute indivisibly.
-
 ## Abstraction aids Commutativity
 
 Often, a program may use atomic actions that are neither right nor left movers and hence cannot be commuted with actions performed by other threads.
@@ -562,27 +550,27 @@ However, it may be possible to create abstractions of the program's atomic actio
 ```boogie
 var {:layer 0,2} x:int;
 
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
-procedure {:atomic} {:layer 1} AtomicIncr(val: int)
+procedure {:yields}{:layer 0}{:refines "AtomicIncr"} Incr(val: int);
+procedure {:atomic}{:layer 1} AtomicIncr(val: int)
 modifies x;
 { x := x + val; }
 
-procedure {:yields} {:layer 0} {:refines "AtomicRead"} Read() returns (v: int);
-procedure {:atomic} {:layer 1} AtomicRead() returns (v: int)
+procedure {:yields}{:layer 0}{:refines "AtomicRead"} Read() returns (v: int);
+procedure {:atomic}{:layer 1} AtomicRead() returns (v: int)
 { v := x; }
 
-procedure {:yields} {:layer 1} {:refines "AbstractAtomicIncr"} _Incr(val: int)
+procedure {:yields}{:layer 1}{:refines "AbstractAtomicIncr"} _Incr(val: int)
 {
   call Incr(val);
 }
-procedure {:right} {:layer 2} AbstractAtomicIncr(val: int)
+procedure {:right}{:layer 2} AbstractAtomicIncr(val: int)
 { assert 0 <= val; x := x + val; }
 
-procedure {:yields} {:layer 1} {:refines "AbstractAtomicRead"} _Read() returns (v: int)
+procedure {:yields}{:layer 1}{:refines "AbstractAtomicRead"} _Read() returns (v: int)
 {
   call Read();
 }
-procedure {:left} {:layer 2} AbstractAtomicRead() returns (v: int)
+procedure {:left}{:layer 2} AbstractAtomicRead() returns (v: int)
 { assume x <= v; }
 ```
 
@@ -601,15 +589,15 @@ Civl introduces yield invariants, a specification idiom that allows the programm
 ```boogie
 var {:layer 0,1} x:int;
 
-procedure {:yields} {:layer 0} {:refines "AtomicIncr"} Incr(val: int);
-procedure {:atomic} {:layer 1} AtomicIncr(val: int)
+procedure {:yields}{:layer 0}{:refines "AtomicIncr"} Incr(val: int);
+procedure {:atomic}{:layer 1} AtomicIncr(val: int)
 modifies x;
 { x := x + val; }
 
-procedure {:yield_invariant} {:layer 1} yield_x(n: int);
+procedure {:yield_invariant}{:layer 1} yield_x(n: int);
 requires x >= n;
 
-procedure {:yields} {:layer 1}
+procedure {:yields}{:layer 1}
 {:yield_requires "yield_x", old(x)}
 {:yield_ensures "yield_x", old(x)+3}
 p()
@@ -621,12 +609,12 @@ p()
   call Incr(1);
 }
 
-procedure {:yields} {:layer 1}
+procedure {:yields}{:layer 1}
 {:yield_preserves "yield_x", old(x)}
 q()
 {
   while (*)
-  invariant {:yields} {:layer 1} {:yield_loop "yield_x", old(x)} true;
+  invariant {:yields}{:layer 1}{:yield_loop "yield_x", old(x)} true;
   {
     call Incr(3);
   }
@@ -655,7 +643,7 @@ Civl exploits linear typing to automatically inject logical assumptions when pro
 type {:linear "X"} Tid;
 var {:layer 0,1} a:[Tid]int;
 
-procedure {:yields} {:layer 0} {:refines "AtomicRead"}
+procedure {:yields}{:layer 0}{:refines "AtomicRead"}
 Read({:linear "X"} tid: Tid, i: int) returns (val: int);
 procedure {:both} {:layer 1}
 AtomicRead({:linear "X"} tid: Tid, i: int) returns (val: int)
@@ -663,7 +651,7 @@ AtomicRead({:linear "X"} tid: Tid, i: int) returns (val: int)
   val := a[tid];
 }
 
-procedure {:yields} {:layer 0} {:refines "AtomicWrite"}
+procedure {:yields}{:layer 0}{:refines "AtomicWrite"}
 Write({:linear "X"} tid: Tid, i: int, val: int);
 procedure {:both} {:layer 1}
 AtomicWrite({:linear "X"} tid: Tid, i: int, val: int)
@@ -672,7 +660,7 @@ modifies a;
   a[tid] := val;
 }
 
-procedure {:yields} {:layer 1} YieldInv({:linear "X"} tid: Tid, v: int);
+procedure {:yields}{:layer 1} YieldInv({:linear "X"} tid: Tid, v: int);
 requires a[tid] == v;
 ```
 
@@ -699,15 +687,13 @@ In some programs, it is helpful to make a distinction between the value stored i
 This increase in expressiveness is achieved by using a collector function from the type of the variable to the type of permissions.
 
 ```boogie
-type {:linear "perm"} {:datatype} Perm;
-function {:constructor} Left(i: int): Perm;
-function {:constructor} Right(i: int): Perm;
+datatype {:linear "perm"} Perm { Left(i: int), Right(i: int) }
 
-function {:inline} {:linear "perm"} IntCollector(i: int) : [Perm]bool
+function {:inline}{:linear "perm"} IntCollector(i: int) : [Perm]bool
 {
   MapConst(false)[Left(i) := true][Right(i) := true]
 }
-function {:inline} {:linear "perm"} IntSetCollector(iset: [int]bool) : [Perm]bool
+function {:inline}{:linear "perm"} IntSetCollector(iset: [int]bool) : [Perm]bool
 {
   (lambda p: Perm :: is#Left(p) && iset[i#Left(p)])
 }
@@ -716,7 +702,7 @@ var {:layer 0,1} barrierOn: bool;
 var {:layer 0,1} barrierCounter: int;
 var {:layer 0,1} {:linear "perm"} mutatorsInBarrier: [int]bool;
 
-procedure {:atomic} {:layer 1} AtomicEnterBarrier({:linear_in "perm"} i: int)
+procedure {:atomic}{:layer 1} AtomicEnterBarrier({:linear_in "perm"} i: int)
 returns ({:linear "perm"} p: Perm)
 modifies barrierCounter, mutatorsInBarrier;
 {
@@ -726,7 +712,7 @@ modifies barrierCounter, mutatorsInBarrier;
     p := Right(i);
 }
 
-procedure {:atomic} {:layer 1} AtomicWaitForBarrierRelease(
+procedure {:atomic}{:layer 1} AtomicWaitForBarrierRelease(
   {:linear_in "perm"} p: Perm,
   {:linear_out "perm"} i: int)
 modifies barrierCounter, mutatorsInBarrier;
@@ -784,12 +770,12 @@ correspoding actual input variable at the call site must be available before the
 In this section, we focus on Civl features for summarizing asynchronous procedure calls.
 
 ```boogie
-procedure {:yields}{:layer 1} Service ()
+procedure {:yields}{:layer 1} Service()
 {
   async call Callback();
 }
 
-procedure {:yields}{:layer 0} Callback ();
+procedure {:yields}{:layer 0} Callback();
 ```
 
 In the program above, the procedure `Service` makes an asynchronous call to the procedure `Callback`.
@@ -802,15 +788,15 @@ Next, we show how to synchronize an asynchronous call to an atomic action with v
 ```boogie
 var {:layer 0,2} x:int;
 
-procedure {:yields}{:layer 1}{:refines "A_Inc"} Service ()
+procedure {:yields}{:layer 1}{:refines "A_Inc"} Service()
 {
   async call {:sync} Callback();
 }
 
-procedure {:both}{:layer 1,2} A_Inc ()
+procedure {:both}{:layer 1,2} A_Inc()
 modifies x;
 { x := x + 1; }
-procedure {:yields}{:layer 0}{:refines "A_Inc"} Callback ();
+procedure {:yields}{:layer 0}{:refines "A_Inc"} Callback();
 ```
 
 In the program above, the procedure `Service` makes an asynchronous call to the procedure `Callback`, similar to the first program shown in this section.
@@ -819,6 +805,7 @@ Since `A_Inc` is a left mover (in fact, a both mover) it is possible to execute 
 This intention is indicated by the `:sync` annotation on the asynchronous call.
 
 ## Pending asyncs
+
 As described in the last section, Civl allows a procedure to make an asynchronous procedure call.
 Additionally and symmetrically, Civl also allows an atomic action to make an asynchronous call to an atomic action.
 Such a call is called a pending async, for brevity, to indicate that the effect of the asynchronous call is pending and becomes visible only once the side effects of the caller atomic action have been applied.
@@ -832,51 +819,58 @@ The next example illustrates the Civl features that allow the user to create and
 ```boogie
 var {:layer 0,3} x:int;
 
-type {:pending_async}{:datatype} PA;
-function {:constructor} A_Inc() : PA;
-
-procedure {:yields}{:layer 2}{:refines "A_Inc"} Client ()
+procedure {:yields}{:layer 2}{:refines "A_Inc"} Client()
 {
   call Service();
 }
 
-procedure {:atomic}{:layer 1}
-{:IS "A_Inc"}{:elim "A_Inc"}
-A_Service() returns ({:pending_async "A_Inc"} PAs: [PA]int)
+procedure {:layer 1}{:creates "A_Inc"}{:IS_invariant}{:elim "A_Inc"} INV()
+modifies x;
 {
-  PAs[A_Inc()] := 1;
+  if (*) {
+    call create_async(A_Inc());
+  } else {
+    x := x + 1;
+  }
 }
-procedure {:yields}{:layer 0}{:refines "A_Service"} Service ()
+
+procedure {:atomic}{:layer 1}{:creates "A_Inc"}{:IS "A_Inc", "INV"} A_Service()
+{
+  call create_async(A_Inc());
+}
+procedure {:yields}{:layer 0}{:refines "A_Service"} Service()
 {
   async call Callback();
 }
 
-procedure {:both}{:layer 1,3} A_Inc ()
+procedure {:both}{:layer 1,3}{:pending_async} A_Inc()
 modifies x;
 { x := x + 1; }
-procedure {:yields}{:layer 0}{:refines "A_Inc"} Callback ();
+procedure {:yields}{:layer 0}{:refines "A_Inc"} Callback();
 ```
 
-A pending async is represented by a datatype with one constructor for each atomic action which will be used as a pending async.
-To prepare to use pending asyncs in a program, a declaration of the
-pending async datatype must be provided.
-In the program above, this datatype is `PA`.
-It has only one constructor `A_Inc` corresponding to the atomic action `A_Inc` declared later.
-
-The procedure `Service` makes an asynchronous call to `Callback` which is abstracted by action `A_Inc` at layer 1 and higher.
-Since there is no `:sync` attribute on this asynchronous call, this call becomes a pending async in the refined action `A_Service`.
-To indicate that `A_Service` creates one or more pending asyncs, an output variable `PAs` of type `[PA]int` (representing a multiset of PA values) is declared for it.
-This variable is initialized to the singleton multiset containing `A_Inc()` as the only value.
+The call to `Callback` in procedure `Service` is not annotated with `:sync`.
+Therefore, Civl infers that this call must be converted into a pending async to `A_Inc` in the refined action `A_Service`.
+The action `A_Inc` is annotated with `:pending_async` to indicate that it may be used as a pending async.
+A pending async action is not allowed to have any output parameters.
+A datatype declaration corresponding to the signature of such an action is automatically created by Civl.
+A value of this datatype may be used as parameter to the primitive `create_async` in atomic action specifications
+to create a pending async.
+The `:creates` annotation contains the name of each atomic action that may be created as a pending async.
+The atomic action `A_Service` creates a single pending async `A_Inc()`.
 
 To complete the round trip, the pending async in the action `A_Service` is eliminated to get back the atomic action `A_Inc`.
-This elimination is indicated by the annotation
+This elimination is achieved by a technique called inductive sequentialization, whose application is indicated by the annotation
 
 ```boogie
-{:IS "A_Inc"}{:elim "A_Inc"}
+{:IS "A_Inc", "INV"}
 ```
 
 on `A_Service`.
-This annotation indicates that by eliminating the pending async to to `A_Inc` from `A_Service`, we obtain an atomic action that refines `A_Inc` itself.
+This annotation indicates that `A_Service` refines `A_Inc` with the invariant action `INV` justifying this refinement.
+The action `INV` is a generalization of `A_Service`.
+`INV` includes every behavior of `A_Service` and is also closed under extension by the eliminated action `A_Inc`.
+The elimination of the pending async to `A_Inc` from `A_Service` results in `A_Inc` itself.
 
 Finally, the procedure `Client` which itself calls `Service` is shown to refine `A_Inc` also.
 The target of this call is rewritten to `A_Service` at layer 1 and to `A_Inc` at layer 2.
