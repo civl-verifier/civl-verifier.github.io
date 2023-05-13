@@ -2,7 +2,7 @@
 title: Tutorial
 ---
 
-[Civl Embedding into Boogie](#civl-embedding-into-boogie)
+[Civl Syntax](#civl-syntax)
 
 [Layered Concurrent Programs](#layered-concurrent-programs)
 
@@ -18,7 +18,7 @@ title: Tutorial
 
 [Summarizing Asynchrony](#summarizing-asynchrony)
 
-# Civl Embedding into Boogie
+# Civl Syntax
 
 Civl is an extension of Boogie. In Boogie, (almost every) abstract syntax tree
 node can be annotated with attributes of the form `{:attr e1, e2, ...}`, where
@@ -146,7 +146,7 @@ Yield invariants can be invoked in calls, parallel calls, as preconditions
 (`invariant call`).
 
 Every loop is either *non-yielding* or *yielding* (denoted with `:yields` on a
-loop invariant).
+loop invariant with condition `true`).
 
 A call can be annotated with `:mark`.
 
@@ -220,11 +220,11 @@ yield procedure {:layer 2} Main()
 The program above represents three concurrent programs, at layers 0, 1, and 2, that share parts of their code.
 Layer 0 is the most concrete and layer 2 is the most abstract.
 The annotation `{:layer 0,2}` on global variable `x` is a range of layers from 0 to 2 indicating that `x` exists at all layers in this layer range.
-The global variable `x` is introduced at layer 0 via the introduction action `Intro_x` and hidden at layer 2.
+The global variable `x` is introduced at layer 0 via the action `Intro_x` and hidden at layer 2.
 Introduction and hiding of global and local variables is explained in detail in a
 [later section](#introducing-and-hiding-variables).
 The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on which `Incr` exists.
-The annotation `{:refines "AtomicIncr"}` on `Incr` indicates that on layers greater than 0 a call to `Incr` is rewritten to a call to `AtomicIncr`.
+The annotation `refines AtomicIncr` on `Incr` indicates that on layers greater than 0 a call to `Incr` is rewritten to a call to `AtomicIncr`.
 Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
 
 ### Program at Layer 0
@@ -422,28 +422,31 @@ Now we want to show that `read_y` refines `atomic_read_y`, and `write_y` refines
 Since `read_y` has the precondition `x == y` (the invariant that expresses our intended connection between `x` and `y`), we know that after reading `x` into the output variable `v`, also `v == y` holds, which is all we need to prove that `read_y` refines `atomic_read_y`.
 In `write_y`, the input variable `y'` is written to `x` by `write_x`.
 But what about `y`?
-To express our intention for `y` we call the introduction action `set_y_to_x`, which sets `y` to the current value of `x`, which at the time of invocation is `y'`.
+To express our intention for `y` we call the action `set_y_to_x`, which sets `y` to the current value of `x`, which at the time of invocation is `y'`.
 Thus we get `y == y'` and we can prove that `write_y` refines `atomic_write_y`.
 
-Introduction actions like `set_y_to_x` have the specific purpose of assigning meaning to introduced variables.
+Actions like `set_y_to_x` have the specific purpose of assigning meaning to introduced variables.
 As such, they are a kind of ghost code that does not cause a context switch;
 recall that `atomic_write_x` and `set_y_to_x` need to execute without context switch to ensure `y == y'`.
 
 We have the following layering constraints:
 
-* All global variable accessed by an atomic action must exist throughout the layer range of the atomic action.
+* If an action has a mover type, it can access any global variable that exists throughout the layer range of the action.
 For example, `x` is introduced at layer 0 before `atomic_read_x` at layer 1, and is hidden at layer 1 together with `atomic_read_x`.
-It is not permissible to already introduce `atomic_read_x` at layer 0.
-* An introduction action can only modify global variables that are introduced at the layer of the introduction action.
+It is not permissible to introduce `atomic_read_x` at layer 0.
+* If an action does not have a mover type, it can access any global variable whose layer range contains the layer range of the variable.
+But the introduction layer of each modified variable must match the introduction layer of the action.
 For example, `y` is introduced at layer 1 and thus can be modified by `set_y_to_x`.
-An introduction action can read any global variable where the layer number of the introduction action is contained in the layer range of the variable.
+Calls to such an action are treated as occurring only at the lower layer of the action.
+Either this layer must be identical to either the disappearing layer of the caller or
+the disappearing layer of each modified variable.
 
 Variable introduction and hiding create the possibility of two different
 programs at each layer, called the low program and the high program of the layer.
 The high program at layer n contains all the code of the low program at n together with
-calls to introduction actions that introduce variables at layer n.
+calls to actions with mover types that introduce variables at layer n.
 Neither the low nor the high program at layer n contains the variables hidden at n.
-The variables introduced at layer n and the introduction actions that introduce them
+The variables introduced at layer n and the actions that introduce them
 are present in the high program but not the low program at layer n.
 Refinement checking at a layer is performed on the high program of that layer.
 

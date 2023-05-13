@@ -1,10 +1,11 @@
 Civl is a verifier for concurrent programs following two core design principles.
 
 * **Layered Refinement** (instead of monolithic proofs): Programs are verified
-  across multiple layers of refinement, where each refinement step corresponds
-  to a small simplifying program transformation. Proof construction becomes more
-  productive by decomposing the problem into small, manageable, and automatable
-  pieces. The resulting proofs become simpler and easier to reuse.
+  across multiple layers of stacked refinements.
+  Each refinement layer corresponds to a simplifying program transformation.
+  Proof construction becomes more productive by decomposing the problem into small,
+  manageable, and automatable pieces.
+  The resulting proofs become simpler and easier to reuse.
 
 * **Structured Programs** (instead of transition systems): Each layer of
   abstraction (from low-level implementations to high-level specifications) is
