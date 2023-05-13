@@ -1,5 +1,5 @@
 ---
-title: Tutorial
+title: Civl Tutorial
 ---
 
 [Civl Syntax](#civl-syntax)
@@ -42,13 +42,12 @@ var {:layer 0,10} x:int;
 Global variable `x` is *introduced* at layer `0` and *hidden* at layer `10`. We
 call `0` the *introduction/lower layer* of `x`, and `10` the *disappearing/upper
 layer* of `x`.
+The layer range `{:layer n}` on a global variable is identical to `{:layer n,n}`.
 
 ## Actions
 
 *Atomic actions* are the building blocks of a Civl program, encapsulating all
 accesses to global variables.
-
-### Atomic Actions
 
 An atomic action typically has a *mover type* and a *layer range*. The mover type is
 either `atomic` (non-mover), `right` (right mover), `left` (left mover), or
@@ -70,6 +69,9 @@ Atomic action `FOO` is *available* from layer `2` up to layer `5` (*introduced*
 at layer `2` and *disappearing* at layer `5`). The gate of `FOO` is `x > 0`, and the
 transition relation states that output parameter `j` returns the current value
 of global variable `x`, and the value of input parameter `i` is added to `x`.
+The layer range `{:layer n}` on an action is identical to `{:layer n,n}`.
+Actions may call other actions as long as the call graph is acyclic
+and for each call the caller's layer range is contained in the callee's layer range.
 
 It is possible to declare an atomic action without a mover type.
 Civl does not add such an action to the pool of actions over which the checking
@@ -139,7 +141,7 @@ additional commands.
 ## Specifications
 
 Every precondition, postcondition, assertion, and loop invariant is annotated
-with a sequence of layer numbers (`{:layer l1, l2, ...}`).
+with a list of layer numbers (`{:layer l1, l2, ...}`).
 
 Yield invariants can be invoked in calls, parallel calls, as preconditions
 (`requires call`), postconditions (`ensures call`), and loop invariants
@@ -148,7 +150,7 @@ Yield invariants can be invoked in calls, parallel calls, as preconditions
 Every loop is either *non-yielding* or *yielding* (denoted with `:yields` on a
 loop invariant with condition `true`).
 
-A call can be annotated with `:mark`.
+A call may be annotated with `:mark`.
 
 ## Parameters
 
@@ -353,7 +355,7 @@ In going from the layer-0 program to the layer-2 program, the set of yield locat
 
 # Introducing and Hiding Variables
 
-In a multi-layered refinement proof it is usually not only useful to change the granularity of atomicity, but also the state representation, i.e., the set of variables over which different program layers are expressed.
+In a multi-layered refinement proof it is not only useful to change the granularity of atomicity, but also the state representation, i.e., the set of variables over which different program layers are expressed.
 In this section, we describe how Civl supports introduction and hiding of both global and local variables.
 
 In the following example program, the usage of variable `x` is changed into the usage of variable `y`.
@@ -438,13 +440,13 @@ It is not permissible to introduce `atomic_read_x` at layer 0.
 But the introduction layer of each modified variable must match the introduction layer of the action.
 For example, `y` is introduced at layer 1 and thus can be modified by `set_y_to_x`.
 Calls to such an action are treated as occurring only at the lower layer of the action.
-Either this layer must be identical to either the disappearing layer of the caller or
+This layer must be identical to either the disappearing layer of the caller or
 the disappearing layer of each modified variable.
 
 Variable introduction and hiding create the possibility of two different
 programs at each layer, called the low program and the high program of the layer.
 The high program at layer n contains all the code of the low program at n together with
-calls to actions with mover types that introduce variables at layer n.
+calls to actions without mover types that introduce variables at layer n.
 Neither the low nor the high program at layer n contains the variables hidden at n.
 The variables introduced at layer n and the actions that introduce them
 are present in the high program but not the low program at layer n.
