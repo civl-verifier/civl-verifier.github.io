@@ -28,14 +28,14 @@ verification techniques and methodologies, like
 *[inductive sequentialization](https://doi.org/10.1145/3385412.3385980)*,
 and *[synchronization](https://dx.doi.org/10.4230/LIPIcs.CONCUR.2018.21)*.
 
-Civl is built on top of
+Civl is built as a conservative extension of
 [Boogie](https://github.com/boogie-org/boogie), a verifier for sequential
 programs. Civl decomposes proof checking into modular verification conditions
 that are automatically verified by a theorem prover/SMT solver.
 
 # Getting Started
 
-Civl is implemented directly as part of [Boogie](https://github.com/boogie-org/boogie),
+Civl is implemented as part of [Boogie](https://github.com/boogie-org/boogie),
 which can be installed from a [NuGet package](https://www.nuget.org/packages/Boogie) or
 [built from source](https://github.com/boogie-org/boogie#building), and requires the
 [Z3](https://github.com/Z3Prover/z3) theorem prover.
@@ -64,7 +64,7 @@ lock implementations
 [ticket](https://github.com/boogie-org/boogie/blob/master/Test/civl/ticket.bpl),
 [seqlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/seqlock.bpl)),
 concurrent data structures
-([treiber stack](https://github.com/boogie-org/boogie/blob/master/Test/civl/treiber-stack.bpl),
+([Treiber stack](https://github.com/boogie-org/boogie/blob/master/Test/civl/treiber-stack.bpl),
 [FastTrack vector clocks](https://github.com/boogie-org/boogie/blob/master/Test/civl/verified-ft.bpl)),
 distributed protocols
 ([Paxos](https://github.com/boogie-org/boogie/tree/master/Test/civl/inductive-sequentialization/paxos),
