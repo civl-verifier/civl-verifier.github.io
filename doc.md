@@ -940,7 +940,8 @@ be executed.
 
 # Quantifier-Instantiation Pools
 The example in the last [section](#inductive-sequentialization) used attributes `:pool` and `:add_to_pool`.
-These attributes are used to provide hints for instantiating quantifiers, which are a notorious source of incompleteness and unpredictable performance in SMT solvers.
+These attributes are used to provide hints for instantiating quantifiers,
+which are a notorious source of incompleteness and unpredictable performance in SMT solvers.
 In this section, we explain the use of these attributes.
 
 We introduce these attributes using the following simpler example.
@@ -968,7 +969,8 @@ The second assert statement illustrates a more sophisticated use of instantiatio
 Unlike the first assert statement, the expression is this assert has a universal quantifier.
 The verification condition generator in Boogie detects that this quantifier may be skolemized using a fresh constant `y0`.
 The `add_to_pool` hint in the body of the quantier tells Boogie to add the term `y0+1` to the pool `"L"`.
-Another way to think about this explanation is that Boogie automatically generates the following intermediate program whose correctness implies the correctness of the original program.
+Another way to think about this explanation is that Boogie automatically generates the following intermediate program
+whose correctness implies the correctness of the original program.
 
 ```boogie
 function F(int): bool;
@@ -981,6 +983,33 @@ procedure A0()
   assert {:add_to_pool "L", y0+1} F(y0);
 }
 ```
+
+The following example shows how instantiation pools handle nested quantifiers.
+In this example, two pools ```"A"``` and ```"B"``` are used.
+
+```boogie
+function P(int, int): bool;
+procedure B1()
+{
+  assume (exists x: int :: {:add_to_pool "B", x+1} (forall {:pool "A"} y: int :: P(x,y)));
+  assert (forall y: int :: {:add_to_pool "A", y} (exists {:pool "B"} x: int :: P(x-1,y)));
+}
+```
+
+Ignoring the pool annotations, the verification problem amounts to proving the following implication,
+where the bound variables ```x``` and ```y``` have been renamed to distinguish their use
+in the antecedent and the consequent:
+
+```
+(exists x1: int :: (forall y1: int :: P(x1,y1)))
+==>
+(forall y2: int :: (exists x2: int :: P(x2-1,y2)))
+```
+
+The following proof steps are automatically carried out by Boogie using the instantiation hints:
+- skolemize ```x1``` to ```x1'``` and ```y2``` to ```y2'```
+- add ```x1'+1``` to pool ```"B"``` and ```y2'``` to pool ```"A"```
+- instantiate ```y1``` with ```y2'``` and ```x2``` with ```x1'+1```
 
 We now turn our attention back to the example in the last [section](#inductive-sequentialization).
 This example does not appear to have any quantified expression; yet the attribute `:pool "A"` is used on the local variable `i` of action `INV`.
