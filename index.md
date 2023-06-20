@@ -55,17 +55,17 @@ Further available options are listed by `-help`.
 
 We have a [tutorial](doc) to help users get started with Civl.
 We also recommend looking at simple
-examples from our [test suite](https://github.com/boogie-org/boogie/tree/master/Test/civl),
+examples from our [suite of samples](https://github.com/boogie-org/boogie/tree/master/Test/civl/samples),
 like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
-Other notable Civl examples include
-a [verified garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/GC.bpl),
+Other notable examples include
+a [verified garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/GC.bpl),
 lock implementations
-([spinlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/lock-introduced.bpl),
-[ticket](https://github.com/boogie-org/boogie/blob/master/Test/civl/ticket.bpl),
-[seqlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/seqlock.bpl)),
+([spinlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/lock-introduced.bpl),
+[ticket](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/ticket.bpl),
+[seqlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/seqlock.bpl)),
 concurrent data structures
-([Treiber stack](https://github.com/boogie-org/boogie/blob/master/Test/civl/treiber-stack.bpl),
-[FastTrack vector clocks](https://github.com/boogie-org/boogie/blob/master/Test/civl/verified-ft.bpl)),
+([Treiber stack](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/treiber-stack.bpl),
+[FastTrack vector clocks](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/verified-ft.bpl)),
 distributed protocols
 ([Paxos](https://github.com/boogie-org/boogie/tree/master/Test/civl/inductive-sequentialization/paxos),
 [two-phase commit](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/2PC.bpl) /
