@@ -12,7 +12,7 @@ title: Civl Tutorial
 
 [Mover Types](#mover-types)
 
-[Yield Invariants](#yield-invariants)
+[Yield Invariants](#yield-invariants-1)
 
 [Linear Typing and Permissions](#linear-typing-and-permissions)
 
