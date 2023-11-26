@@ -94,6 +94,7 @@ invariat i <= x;
 
 Yield invariant `yield_x` states that global variable `x` is greater than or
 equal to parameter `i`.
+This invariant is applicable to the reasoning only at layer `1`.
 
 ## Yielding Procedures
 
