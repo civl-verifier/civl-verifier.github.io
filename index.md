@@ -45,7 +45,7 @@ To verify a Civl program, simply invoke Boogie on the program as follows:
 ```
 $ boogie Test/civl/ticket.bpl
 
-Boogie program verifier finished with 19 verified, 0 errors
+Boogie program verifier finished with 8 verified, 0 errors
 ```
 
 To inspect the plain Boogie program that Civl generates, use the option `-civlDesugaredFile:<file.bpl>`.
@@ -53,8 +53,11 @@ Further available options are listed by `-help`.
 
 # Resources
 
-We have a [tutorial](doc) to help users get started with Civl.
-We also recommend looking at simple
+For a general overview, we have a tutorial ([slides](https://docs.google.com/presentation/d/1ZwlPwGjG4WMsHK0iBRl2K_J56s1WOffwqfNlyXLW0TQ/edit?usp=sharing), [recording](https://www.youtube.com/watch?v=IupUuKU7UdQ&t=4s)).
+
+For more detailed guidance about using Civl, we have [documentation](doc).
+
+We recommend looking at simple
 examples from our [suite of samples](https://github.com/boogie-org/boogie/tree/master/Test/civl/samples),
 like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 Other notable examples include
