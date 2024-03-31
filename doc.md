@@ -1,5 +1,5 @@
 ---
-title: Civl Tutorial
+title: Civl Documentation
 ---
 
 [Civl Syntax](#civl-syntax)
