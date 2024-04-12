@@ -194,14 +194,13 @@ Understanding this foundational aspect of Civl will make it easier to understand
 ```boogie
 var {:layer 0,2} x: int;
 
-action {:layer 0} Intro_x(val: int)
-modifies x;
-{ x := x + val; }
+pure action Add(a: int, b: int) returns (c: int)
+{ c := a + b; }
 
 yield procedure {:layer 0} Incr(val: int)
 refines AtomicIncr;
 {
-  call Intro_x(val);
+  call {:layer 0} x := Add(x, val);
 }
 left action {:layer 1} AtomicIncr(val: int)
 modifies x;
@@ -225,7 +224,7 @@ yield procedure {:layer 2} Main()
 The program above represents three concurrent programs, at layers 0, 1, and 2, that share parts of their code.
 Layer 0 is the most concrete and layer 2 is the most abstract.
 The annotation `{:layer 0,2}` on global variable `x` is a range of layers from 0 to 2 indicating that `x` exists at all layers in this layer range.
-The global variable `x` is introduced at layer 0 via the action `Intro_x` and hidden at layer 2.
+The global variable `x` is introduced at layer 0 via a call to the pure action `Add` and hidden at layer 2.
 Introduction and hiding of global and local variables is explained in detail in a
 [later section](#introducing-and-hiding-variables).
 The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on which `Incr` exists.
@@ -237,13 +236,12 @@ Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `
 ```boogie
 var x: int;
 
-action Intro_x(val: int)
-modifies x;
-{ x := x + val; }
+pure action Add(a: int, b: int) returns (c: int)
+{ c := a + b; }
 
 yield procedure Incr(val: int)
 {
-  call Intro_x(val);
+  call x := Add(x, val);
 }
 
 yield procedure IncrBy2()
