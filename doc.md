@@ -356,7 +356,8 @@ In going from the layer-0 program to the layer-2 program, the set of yield locat
 
 # Introducing and Hiding Variables
 
-In a multi-layered refinement proof it is not only useful to change the granularity of atomicity, but also the state representation, i.e., the set of variables over which different program layers are expressed.
+In a multi-layered refinement proof it is not only useful to change the granularity of atomicity,
+but also the state representation, i.e., the set of variables over which different program layers are expressed.
 In this section, we describe how Civl supports introduction and hiding of both global and local variables.
 
 In the following example program, the usage of variable `x` is changed into the usage of variable `y`.
@@ -381,13 +382,7 @@ yield procedure {:layer 1}  write_y (y':int)
 refines atomic_write_y;
 {
   call write_x(y');
-  call set_y_to_x();
-}
-
-action {:layer 1} set_y_to_x ()
-modifies y;
-{
-  y := x;
+  call {:layer 1} y := Copy(x);
 }
 
 atomic action {:layer 1} atomic_read_x () returns (v:int)
@@ -395,7 +390,7 @@ atomic action {:layer 1} atomic_read_x () returns (v:int)
 yield procedure {:layer 0} read_x () returns (v:int)
 refines atomic_read_x;
 {
-  call v := intro_read_x();
+  call {:layer 0} v := Copy(x);
 }
 
 atomic action {:layer 1} atomic_write_x (x':int)
@@ -404,15 +399,8 @@ modifies x;
 yield procedure {:layer 0} write_x (x':int)
 refines atomic_write_x;
 {
-  call intro_write_x(x');
+  call {:layer 0} x := Copy(x');
 }
-
-action {:layer 0} intro_read_x () returns (v:int)
-{ v := x; }
-
-action {:layer 0} intro_write_x (x':int)
-modifies x;
-{ x := x'; }
 ```
 
 First, consider the layer ranges of `x` and `y`.
@@ -425,24 +413,25 @@ Now we want to show that `read_y` refines `atomic_read_y`, and `write_y` refines
 Since `read_y` has the precondition `x == y` (the invariant that expresses our intended connection between `x` and `y`), we know that after reading `x` into the output variable `v`, also `v == y` holds, which is all we need to prove that `read_y` refines `atomic_read_y`.
 In `write_y`, the input variable `y'` is written to `x` by `write_x`.
 But what about `y`?
-To express our intention for `y` we call the action `set_y_to_x`, which sets `y` to the current value of `x`, which at the time of invocation is `y'`.
+To express our intention for `y` we call the action `Copy`,
+a pure action defind in the Civl base library which copies its input into its output.
+We often use calls to `Copy`, together with a layer annotation to introduce computation.
+This particular call sets `y` to the current value of `x`, which at the time of invocation is `y'`.
 Thus we get `y == y'` and we can prove that `write_y` refines `atomic_write_y`.
 
-Actions like `set_y_to_x` have the specific purpose of assigning meaning to introduced variables.
-As such, they are a kind of ghost code that does not cause a context switch;
-recall that `atomic_write_x` and `set_y_to_x` need to execute without context switch to ensure `y == y'`.
+Invocation of `Copy` has the specific purpose of assigning meaning to introduced variables.
+Such a call is a kind of ghost code that does not cause a context switch;
+recall that `atomic_write_x` and `Copy` need to execute without context switch to ensure `y == y'`.
 
 We have the following layering constraints:
 
-* If an action has a mover type, it can access any global variable that exists throughout the layer range of the action.
+* An action can access any global variable that exists throughout the layer range of the action.
 For example, `x` is introduced at layer 0 before `atomic_read_x` at layer 1, and is hidden at layer 1 together with `atomic_read_x`.
 It is not permissible to introduce `atomic_read_x` at layer 0.
-* If an action does not have a mover type, it can access any global variable whose layer range contains the layer range of the variable.
-But the introduction layer of each modified variable must match the introduction layer of the action.
-For example, `y` is introduced at layer 1 and thus can be modified by `set_y_to_x`.
-Calls to such an action are treated as occurring only at the lower layer of the action.
-This layer must be identical to either the disappearing layer of the caller or
-the disappearing layer of each modified variable.
+* A pure action may not access any global variable and must not block.
+A pure action may be directly called by a yield procedure to introduce computation at a layer indicated by an attribute `{:layer n}` on the call.
+For such a call, the inputs may refer to any variable that exists at `n` or is introduced at `n`.
+Any output of the call must be received in a variable that is introduced at `n`.
 
 Variable introduction and hiding create the possibility of two different
 programs at each layer, called the low program and the high program of the layer.
