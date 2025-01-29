@@ -99,6 +99,7 @@ and many more.
 
 ## Talks
 
+* [Scaling Verification of Concurrent Programs with the Civl Verifier](https://www.youtube.com/watch?v=IupUuKU7UdQ) @ TutorialFest, POPL 2024
 * [The Civl Verifier](https://youtu.be/vGMnQqoy6eA) @ FMCAD 2021
 * [Reifying Concurrent Programs](https://bbb-lb.math.univ-paris-diderot.fr/playback/presentation/2.3/972f09fb375ed24cd2f676ef7a70c4bbea355455-1614264363134?meetingId=972f09fb375ed24cd2f676ef7a70c4bbea355455-1614264363134) @ University of Paris VII
 * [Refinement for Structured Concurrent Programs](https://youtu.be/anKt3qjo5as?t=1306) @ CAV 2020
