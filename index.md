@@ -20,12 +20,8 @@ concurrent programs, including
 *stepwise-refinement*,
 *[gated atomic actions](https://doi.org/10.1145/1480881.1480885)*,
 *[mover types](https://doi.org/10.1145/781131.781169)*,
-*inductive invariants*, *noninterference reasoning*,
-and *linear permissions*.
-It also incorporates newer
-verification techniques and methodologies, like
 *[yield invariants](https://doi.org/10.1007/978-3-030-53288-8_14)*,
-*[inductive sequentialization](https://doi.org/10.1145/3385412.3385980)*,
+*linear permissions*,
 and *[synchronization](https://dx.doi.org/10.4230/LIPIcs.CONCUR.2018.21)*.
 
 Civl is built as a conservative extension of
@@ -61,39 +57,41 @@ We recommend looking at simple
 examples from our [suite of samples](https://github.com/boogie-org/boogie/tree/master/Test/civl/samples),
 like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
 Other notable examples include
-a [verified garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/GC.bpl),
+a [verified garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/large-samples/GC.bpl),
 lock implementations
 ([spinlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/lock-introduced.bpl),
 [ticket](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/ticket.bpl),
 [seqlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/seqlock.bpl)),
 concurrent data structures
-([Treiber stack](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/treiber-stack.bpl),
-[FastTrack vector clocks](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/verified-ft.bpl)),
+([Treiber stack](https://github.com/boogie-org/boogie/blob/master/Test/civl/large-samples/treiber-stack.bpl),
+[FastTrack vector clocks](https://github.com/boogie-org/boogie/blob/master/Test/civl/large-samples/verified-ft.bpl)),
 distributed protocols
-([Paxos](https://github.com/boogie-org/boogie/tree/master/Test/civl/inductive-sequentialization/paxos),
-[two-phase commit](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/2PC.bpl) /
-[2PC](https://github.com/boogie-org/boogie/blob/master/Test/civl/async/2pc.bpl),
-[Chang-Roberts](https://github.com/boogie-org/boogie/blob/master/Test/civl/inductive-sequentialization/ChangRoberts.bpl)),
+([Paxos](https://github.com/boogie-org/boogie/tree/master/Test/civl/paxos),
+[two-phase commit](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/2pc.bpl),
+[Chang-Roberts](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/ChangRoberts.bpl)),
 and many more.
 
 ## Publications
 
-* [The Civl Verifier](papers/fmcad2021.pdf)\
+* [Reduction for structured concurrent programs](papers/esop2026.pdf)\
+  Namratha Gangamreddypalli, Constantin Enea, Shaz Qadeer\
+  ESOP 2026
+* [The Civl verifier](papers/fmcad2021.pdf)\
   Bernhard Kragl, Shaz Qadeer\
   FMCAD 2021
-* [Refinement for Structured Concurrent Programs](papers/cav2020.pdf)\
+* [Refinement for structured concurrent programs](papers/cav2020.pdf)\
   Bernhard Kragl, Shaz Qadeer, Thomas A. Henzinger\
   CAV 2020
-* [Inductive Sequentialization of Asynchronous Programs](papers/pldi2020.pdf)\
+* [Inductive sequentialization of asynchronous programs](papers/pldi2020.pdf)\
   Bernhard Kragl, Constantin Enea, Thomas A. Henzinger, Suha Orhun Mutluergil, Shaz Qadeer\
   PLDI 2020
-* [Synchronizing the Asynchronous](papers/concur2018.pdf)\
+* [Synchronizing the asynchronous](papers/concur2018.pdf)\
   Bernhard Kragl, Shaz Qadeer, Thomas A. Henzinger\
   CONCUR 2018
-* [Layered Concurrent Programs](papers/cav2018.pdf)\
+* [Layered concurrent programs](papers/cav2018.pdf)\
   Bernhard Kragl, Shaz Qadeer\
   CAV 2018
-* [Automated and Modular Refinement Reasoning for Concurrent Programs](https://www.microsoft.com/en-us/research/publication/automated-and-modular-refinement-reasoning-for-concurrent-programs/)\
+* [Automated and modular refinement reasoning for concurrent programs](https://www.microsoft.com/en-us/research/publication/automated-and-modular-refinement-reasoning-for-concurrent-programs/)\
   Chris Hawblitzel, Erez Petrank, Shaz Qadeer, Serdar Tasiran\
   CAV 2015
 
@@ -105,10 +103,3 @@ and many more.
 * [Refinement for Structured Concurrent Programs](https://youtu.be/anKt3qjo5as?t=1306) @ CAV 2020
 * [Civl-ized Concurrent Programs](https://youtu.be/f8Cjpt-rzxE?t=2081) @ [DSV 2020](https://smackers.github.io/democratizing-software-verification-workshop-2020/)
 * [Inductive Sequentialization of Asynchronous Programs](https://www.youtube.com/watch?v=hShxxspWeb8) @ PLDI 2020
-
-# Team
-
-* [Bernhard Kragl](https://bkragl.github.io)
-* [Shaz Qadeer](https://scholar.google.com/citations?user=EqIVfYcAAAAJ&hl=en)
-
-If you are interested in Civl, please get in touch!
