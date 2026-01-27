@@ -14,9 +14,9 @@ title: Civl Documentation
 
 [Yield Invariants](#yield-invariants-1)
 
-[Linear Typing and Permissions](#linear-typing-and-permissions)
+[Permissions](#permissions)
 
-[Summarizing Asynchrony](#summarizing-asynchrony)
+[Synchronizing Asynchrony](#synchronizing-asynchrony)
 
 [Quantifier-Instantiation Pools](#quantifier-instantiation-pools)
 
@@ -793,7 +793,7 @@ The annotation `{:linear_out}` indicates that the actual input variable correspo
 
 # Synchronizing Asynchrony
 
-In this section, we focus on Civl features for summarizing asynchronous procedure calls.
+In this section, we focus on Civl features for synchronizing asynchronous procedure calls.
 
 ```boogie
 yield procedure {:layer 1} Service()
