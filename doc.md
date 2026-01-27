@@ -53,7 +53,10 @@ accesses to global variables.
 
 An atomic action typically has a *mover type* and a *layer range*. The mover type is
 either `atomic` (non-mover), `right` (right mover), `left` (left mover), or
-`both` (both mover). The body of an atomic action consists of a sequence of
+`both` (both mover).
+It is possible to declare an atomic action without a mover type,
+in which case the default mover type `atomic` is assigned to the action.
+The body of an atomic action consists of a sequence of
 assert commands, called the *gate*, followed by a loop-free block of
 code, denoting a *transition relation*.
 
@@ -75,21 +78,14 @@ The layer range `{:layer n}` on an action is identical to `{:layer n,n}`.
 Actions may call other actions as long as the call graph is acyclic
 and for each call the caller's layer range is contained in the callee's layer range.
 
-It is possible to declare an atomic action without a mover type.
-Civl does not add such an action to the pool of actions over which the checking
-of mover types is performed.
-Consequently, such actions are used in a restricted manner, notably for linking
-two layers across which the set of global variables differ and for providing
-auxiliary invariants and abstractions as proof hints.
-
 ## Yield Invariants
 
-A *yield invariant* has a layer number and a sequence of `invariant` clauses (but
+A *yield invariant* has a layer number and a sequence of `preserves` clauses (but
 no body).
 
 ```boogie
 yield invariant {:layer 1} yield_x(i: int);
-invariat i <= x;
+preserves i <= x;
 ```
 
 Yield invariant `yield_x` states that global variable `x` is greater than or
@@ -103,7 +99,7 @@ There are two kinds: *action procedures* that get summarized
 by atomic actions, and *mover procedures* that get summarized by
 pre/postconditions.
 
-### Action Procedure
+### Action Procedures
 
 An action procedure has a *disappearing layer* and a *refined atomic action*.
 The `modifies` clause is implicit and contains all global variables.
@@ -123,14 +119,12 @@ If no `refines` clause is given, then the procedure is called a
 both action {:layer 0,∞} SKIP () { }
 ```
 
-### Mover Procedure
+### Mover Procedures
 
-A mover procedure has a *disappearing layer* and a *mover type*. The `modifies`
-clause has to be provided.
+A mover procedure has a *disappearing layer* and a *mover type*.
 
 ```boogie
 yield right procedure {:layer 1} foo (...) returns (...);
-modifies ...;
 ```
 
 ## Implementations
@@ -153,8 +147,6 @@ Yield invariants can be invoked in calls, parallel calls, as preconditions
 Every loop is either *non-yielding* or *yielding* (denoted with `:yields` on a
 loop invariant with condition `true`).
 
-A call may be annotated with `:mark`.
-
 ## Parameters
 
 Every input and output parameter of a yielding procedure has a layer range.
@@ -165,20 +157,55 @@ procedure. A different layer range can be assigned to every parameter using the
 Parameters of action procedures can be annotated with `:hide` to declare that
 the parameter does not occur in the refined atomic action.
 
-## Pure Procedures
+## Pure Actions
 
-Pure procedures do not read or modify global variables.
-These procedures support the injection of (potentially unverified) facts and proof hints.
-In particular, this is a useful alternative to global quantified axioms.
+A pure action does not read or modify global variables,
+is layer independent, and has the mover type `both`.
 
 ```boogie
+pure action Add(a: int, b: int) returns (c: int)
+{ c := a + b; }
+```
+
+A pure action serve two purposes.
+First, a pure action can factor out computation that may be reused
+via calls from other actions.
+The layer independent nature of pure actions increases this reusability.
+
+Second, a pure action may be called from a yield procedure to add computation
+that introduces local or global variables at a layer.
+Such a call must be annotated to indicate the layer at which the new variables
+are being introduced.
+
+```boogie
+call {:layer 3} x := Add(y, z);
+```
+
+The call above introduces a variable `x` at layer 3;
+the variables `y` and `z` are expected to exist at layer 3 as well.
+
+## Pure Procedures
+
+A pure procedure does not read or modify global variables and is expected to
+terminate for all inputs.
+
+```boogie
+pure procedure ToSet(a: Vec int) returns (b: Set int)
+ensures (forall i: int :: 0 <= i && i < Vec_Len(a) ==> Set_Contains(Vec_Nth(a, i)));
+{ ... }
+
 pure procedure Lemma_add_to_set (x: X, set: [X]bool);
 requires !set[x];
 ensures card(set[x := true]) == card(set) + 1;
 ```
 
-The pure procedure `Lemma_add_to_set` states the fact about set cardinality,
+Similar to pure actions, a pure procedure may be called at a particular layer 
+from a yield procedure to introduce new variables at that layer.
+Additionally, these procedures support the injection of lemmas and proof hints.
+In particular, this is a useful alternative to global quantified axioms.
+For example, the pure procedure `Lemma_add_to_set` states the fact about set cardinality,
 that adding an element to a set increases the sets cardinality by one.
+
 
 # Layered Concurrent Programs
 
@@ -323,10 +350,6 @@ Then, since `Incr` disappears at layer 0 and is abstracted by `AtomicIncr`, we s
 In general, a yielding procedure that disappears at layer `n` cannot make calls to yielding procedures that disappear on a layer greater than `n`.
 The simple case is that there are only calls to procedures that disappear on layers smaller than `n`.
 Then there are only calls to atomic actions left at layer `n`.
-There are only three exceptions when a yielding procedure can make calls to another yielding procedure with the same disappearing layer:
-(1) calls to skip procedures,
-(2) calls to mover procedures, and
-(3) calls that are annotated with `:mark`.
 
 Data layering and control layering obviously interact, since the variables accessed by the control of a particular layer must indeed exist on that layer.
 
@@ -346,11 +369,11 @@ Any execution path in a procedure from its entry to its exit is
 partitioned into a sequence of execution fragments from one yield location to the next.
 Each such execution fragment is called a *yield-to-yield fragment*.
 Notice that these yield-to-yield fragments are dynamically scoped.
-Yield locations specify the non-preemtive semantics.
-Civl checks that there are "sufficiently many" yield locations such that reasoning about the non-preemtive semantics
+Yield locations specify the non-preemptive semantics.
+Civl checks that there are "sufficiently many" yield locations such that reasoning about the non-preemptive semantics
 is sufficient to reason about the preemptive semantics.
 
-Going from preemtive to non-preemptive semantics simplifies the reasoning at one particular program layer.
+Going from preemptive to non-preemptive semantics simplifies the reasoning at one particular program layer.
 In going from the layer-0 program to the layer-2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invocations of atomic actions, thereby leading to simplified reasoning at the higher layer.
 
 
@@ -456,6 +479,7 @@ the high program at layer 0 contains only `x`.
 the high program at layer 1 contains both `x` and `y`.
 * The low and high programs at layer 2 are identical and contain only `y`.
 
+
 # Refinement Checking
 
 We now explain how the specification `refines AtomicIncrBy2` is checked on the implementation of the procedure `IncrBy2`.
@@ -463,7 +487,8 @@ This refinement checking justifies the transformation of the layer-1 program to 
 Civl checks that along each execution path in `IncrBy2` from entry to exit, there is exactly one yield-to-yield fragment that behaves like `AtomicIncrBy2`.
 (In this particular example, `IncrBy2` consists of only a single yield-to-yield fragment at layer 1.)
 All other yield-to-yield fragments before and after this unique fragment leave state visible to the environment of `IncrBy2` unchanged.
-The visible state for `IncrBy2` includes only the global variable `x`. In general, visible state for a procedure includes global variables and output variables of the procedure.
+The visible state for `IncrBy2` includes only the global variable `x`.
+In general, visible state for a procedure includes global variables and output variables of the procedure.
 
 The signature of a procedure and its refined action must match unless a parameter of the procedure is annotated with `:hide` in
 which case this parameter may be omitted from the signature of the refined action.
@@ -476,10 +501,6 @@ This is tantamount to annotating each parameter of the procedure with `:hide`.
 Since the SKIP action does not modify any variable, every yield-to-yield fragment in the procedure is allowed to modify
 only those global variables that are hidden at the disappearing layer of the procedure.
 
-A call marked by `:mark` attribute is treated specially during refinement checking.
-Such a call must be to a callee procedure with the same disappearing layer as the caller.
-It is expected that the refined action of the callee, when substituted at the call site, is the unique step
-at which the caller's refined action appears to happen.
 
 # Mover Types
 
@@ -491,7 +512,7 @@ The following code illustrates mover types for atomic actions.
 var {:layer 0,1} x:int;
 
 yield invariant {:layer 1} yield_x(n: int);
-invariant x >= n;
+preserves x >= n;
 
 yield procedure {:layer 0} Incr(val: int);
 refines AtomicIncr;
@@ -589,6 +610,7 @@ In the code above, atomic actions `AtomicIncr` and `AtomicRead` at layer 1 are n
 At layer 2, we create abstractions `AbstractAtomicIncr` and `AbstractAtomicRead` of `AtomicIncr` and `AtomicRead` respectively.
 The abstractions are chosen so that `AbstractAtomicIncr` is a right mover and `AbstractAtomicRead` is a left mover.
 
+
 # Yield Invariants
 
 Reasoning about concurrent programs is difficult because of the
@@ -607,7 +629,7 @@ modifies x;
 { x := x + val; }
 
 yield invariant {:layer 1} yield_x(n: int);
-invariant x >= n;
+preserves x >= n;
 
 yield procedure {:layer 1} p()
 requires call yield_x(old(x));
@@ -645,135 +667,131 @@ Procedure `p` also invokes `yield_x` at exit using the annotation `ensures call 
 Procedure `q` uses the annotation `preserves call yield_x(old(x))` which is a shorthand for a pair of annotations `requires call yield_x(old(x))` and `ensures call yield_x(old(x))`.
 Procedure `q` also uses `invariant call yield_x(old(x))` to supply the noninterference condition at the yield at the head of the loop in `q`.
 
-# Linear Typing and Permissions
 
-Civl exploits linear typing to automatically inject logical assumptions when proving that a location or yield invariant is inteference-free or two actions commute with each other.
+# Permissions
+
+Civl provides a polymorphic type `One T` to store permissions.
 
 ```boogie
-type {:linear "X"} Tid;
-var {:layer 0,1} a:[Tid]int;
+datatype One<T> { One(val: T) }
+```
 
-yield procedure {:layer 0} Read({:linear "X"} tid: Tid, i: int) returns (val: int);
+Global variables and procedure parameters of type `One _` are indicated to be linear by annotating with the attribute `{:linear}`.
+A linear variable `x` of type `One T` contains the singleton set of permissions `{x}`.
+The type `One T` may be nested in datatypes.
+
+```boogie
+datatype A<T> { A(v: One T, u: int) }
+```
+
+A linear variable `x` of type `A T` contains the singleton set of permissions `{x->v}`.
+A linear variable `x` of type `Set (One T)` contains the set of permissios `x`.
+A linear variable `x` of type `Map K V` contains the union of permissions inside `x->val[k]`
+for each `k` in `x->dom`.
+Additionally, if `K = One _` then the set `x->dom` is added to the set of permissions in `x`.
+
+The permissions stored in linear variables are guaranteed to disjoint from each other in any reachable
+state of the program.
+As the program executes, the permissions stored in the program variables may be redistributed but not duplicated,
+a condition that is verified via linear typing implemented in the Civl type checker.
+Civl exploits this disjointness invariant to automatically inject logical assumptions when proving that a 
+location or yield invariant is inteference-free or two actions commute with each other.
+
+
+```boogie
+type Tid;
+var {:layer 0,1} a: [Tid]int;
+
+yield procedure {:layer 0} Read({:linear} tid: One Tid) returns (v: int);
 refines AtomicRead;
-both action {:layer 1} AtomicRead({:linear "X"} tid: Tid, i: int) returns (val: int)
+both action {:layer 1} AtomicRead({:linear} tid: One Tid) returns (v: int)
 {
-  val := a[tid];
+  v := a[tid->val];
 }
 
-yield procedure {:layer 0} Write({:linear "X"} tid: Tid, i: int, val: int);
+yield procedure {:layer 0} Write({:linear} tid: One Tid, v: int);
 refines AtomicWrite;
-both action {:layer 1} AtomicWrite({:linear "X"} tid: Tid, i: int, val: int)
+both action {:layer 1} AtomicWrite({:linear} tid: One Tid, v: int)
 modifies a;
 {
-  a[tid] := val;
+  a[tid->val] := v;
 }
 
-yield procedure {:layer 1} YieldInv({:linear "X"} tid: Tid, v: int);
-requires a[tid] == v;
+yield procedure {:layer 1} YieldInv({:linear} tid: One Tid, v: int);
+requires a[tid->val] == v;
 ```
 
-In the program above, the declaration of type `Tid` has the annotation `{:linear "X"}`.
-This annotation indicates that values of type `Tid` are *permissions* that must be distributed among the variables of the program without duplication.
-As the program executes, the permissions stored in the program variables may be redistributed but not duplicated, a condition that is verified by Civl.
-These permissions are associated with a *domain* called `X`; disjointness is enforced within a domain but not across domains.
-Different domains may use the same permission type.
-For example, if `Tid` is the permission type for a domain `Y` also, then we would use the declaration `type {:linear "X", "Y"} Tid;`.
-
-It is not required for all variables of type `Tid` to contain permissions.
-To indicate that a variable contains permissions for domain `X`, it must have the annotation `{:linear "X"}`.
-The parameter `tid` of atomic action `AtomicRead` contains permissions.
-So does the parameter `tid` of `AtomicWrite`.
-Consequently, if a thread is executing `AtomicRead(tid1, i1)` and another is executing `AtomicWrite(tid2, i2, val2)`, `tid1` and `tid2` must be distinct from each other.
+In the program above,
+if a thread is executing `AtomicRead(tid1, i1)` and another is executing `AtomicWrite(tid2, i2, val2)`, `tid1` and `tid2` must be distinct from each other.
 This assumption is used to prove that `AtomicRead` and `AtomicWrite` are both movers.
-
-Permissions are useful also for proving interference-freedom for location and yield invariants.
+Permissions are useful also for proving interference-freedom for yield invariants.
 The yield invariant `YieldInv` is proved interference-free against any yield-to-yield code fragment that mutates `a` using `AtomicWrite`.
-
-## Permission Collectors
-
-In some programs, it is helpful to make a distinction between the value stored in a variable and the permission associated with it.
-This increase in expressiveness is achieved by using a collector function from the type of the variable to the type of permissions.
-
-```boogie
-datatype {:linear "perm"} Perm { Left(i: int), Right(i: int) }
-
-function {:inline}{:linear "perm"} IntCollector(i: int) : [Perm]bool
-{
-  MapConst(false)[Left(i) := true][Right(i) := true]
-}
-function {:inline}{:linear "perm"} IntSetCollector(iset: [int]bool) : [Perm]bool
-{
-  (lambda p: Perm :: is#Left(p) && iset[i#Left(p)])
-}
-
-var {:layer 0,1} barrierOn: bool;
-var {:layer 0,1} barrierCounter: int;
-var {:layer 0,1} {:linear "perm"} mutatorsInBarrier: [int]bool;
-
-atomic action {:layer 1} AtomicEnterBarrier({:linear_in "perm"} i: int)
-returns ({:linear "perm"} p: Perm)
-modifies barrierCounter, mutatorsInBarrier;
-{
-    assert IsMutator(i);
-    mutatorsInBarrier[i] := true;
-    barrierCounter := barrierCounter - 1;
-    p := Right(i);
-}
-
-atomic action {:layer 1} AtomicWaitForBarrierRelease(
-  {:linear_in "perm"} p: Perm,
-  {:linear_out "perm"} i: int)
-modifies barrierCounter, mutatorsInBarrier;
-{
-    assert p == Right(i) && mutatorsInBarrier[i];
-    assume !barrierOn;
-    mutatorsInBarrier[i] := false;
-    barrierCounter := barrierCounter + 1;
-}
-```
-
-In the program above, the type `Perm` is a datatype with two constructors, `Left` and `Right`.
-`Perm` is the permission type for domain `perm`.
-The program variable that contain permissions in `Perm` are of type `int` and `[int]bool`.
-The latter type represents a set of integers encoded as a map from `int` to `bool`; the set contains exactly those integers that are mapped to `true`.
-The program defines two collectors, `IntCollector` and `IntSetCollector`.
-The former collects permissions for a variable of type `int` and the latter collects permissions for a variable of type `[int]bool`.
-The return type of each of these functions is `[Perm]bool`, representing a set of `Perm` values.
-There are two implicitly-defined and auto-generated collector functions for each permission type.
-These two collectors for the `Perm` type are shown below.
-
-```boogie
-function {:inline} PermCollector(x: Perm) : [Perm]bool {
-  MapConst(false)[x := true]
-}
-function {:inline} PermSetCollector(xs: [Perm]bool) : [Perm]bool {
-  xs
-}
-```
-
-Permissions obtained by applying the collector function of the appropriate type to program variables continue to be distributed without being duplicated.
-The enforced invariant states that permissions obtained from two distinct variables are disjoint.
 
 ## Permission Redistribution
 
-A variable that is annotated with `{:linear "D"}` for any domain `D` is a linear variable.
-Permissions are stored in a subset of the program's linear variables and may be redistributed among them as the program executes.
+```boogie
+datatype Perm { Left(i: int), Right(i: int) }
+
+datatype Tid { Tid(i: int, ps: Set (One Perm)) }
+
+var {:layer 0,1} barrierOn: bool;
+var {:layer 0,1} barrierCounter: int;
+var {:layer 0,1} {:linear} mutatorsInBarrier: Set (One Perm);
+
+atomic action {:layer 1} AtomicEnterBarrier({:linear_in} tid: Tid) returns ({:linear} tid': Tid)
+{
+  var p: One Perm;
+  var i: int;
+
+  i := tid->i;
+  assert IsMutator(i);
+  tid' := tid;
+  p := One(Left(i));
+  call One_Get(tid'->ps, p);
+  call One_Put(mutatorsInBarrier, p);
+  barrierCounter := barrierCounter - 1;
+}
+
+atomic action {:layer 1} AtomicWaitForBarrierRelease({:linear_in} tid: Tid) returns ({:linear} tid': Tid)
+{
+  var p: One Perm;
+  var i: int;
+
+  i := tid->i;
+  assert Set_Contains(tid->ps, One(Right(i)));
+  assert Set_Contains(mutatorsInBarrier, One(Left(i)));
+  assume !barrierOn;
+  p := One(Left(i));
+  call One_Get(mutatorsInBarrier, p);
+  tid' := tid;
+  call One_Put(tid'->ps, p);
+  barrierCounter := barrierCounter + 1;
+}
+```
+
 Civl performs a dataflow analysis to compute at each program location a set of available variables such that permissions in these variables are guaranteed to be disjoint.
 The set of available variables at a program location contains every global linear variable but may contain only a subset of the local linear variables in scope.
 
 Consider the atomic action `AtomicEnterBarrier` in the program above.
-Input `i` of this action is annotated `{:linear_in "perm"}` indicating that the actual input variable corresponding to `i` at the call site must be available before the call and becomes unavailable after the call.
-Output `p` is annotated `{:linear "perm"}` indicating that the actual output variable corresponding to `p` at the call site becomes available after the call.
-The code of `AtomicEnterBarrier` redistributes the permissions stored in global variable `mutatorsInBarrier` and the input `i` among `mutatorsInBarrier` and output `p`.
+Input `tid` of this action is annotated `{:linear_in}` indicating that the actual input variable corresponding to `i`
+at the call site must be available before the call and becomes unavailable after the call.
+Output `tid'` is annotated `{:linear}` indicating that the actual output variable corresponding to `p`
+at the call site becomes available after the call.
+The code of `AtomicEnterBarrier` redistributes the permissions stored in global variable `mutatorsInBarrier`
+and the input `tid` among `mutatorsInBarrier` and output `tid'`.
 Civl checks that this redistribution does not cause duplication.
 
-The atomic action `AtomicWaitForBarrierRelease` has an input `i` annotated `{:linear_out "perm"}`.
-This annotation indicates that the actual input variable corresponding to `i` at the call site will become available after the call.
+The atomic action `AtomicWaitForBarrierRelease` has an interface similar to `AtomicEnterBarrier`.
+This action also redistributes the permissions stored in global variable `mutatorsInBarrier`
+and the input `tid` among `mutatorsInBarrier` and output `tid'`.
 
-Finally, the annotation `{:linear "perm"}` on an input parameter, although not used in the program above, would indicate that the
+Although not used in the program above, input parameters may be annotated with `{:linear}` and `{:linear_out}`.
+The annotation `{:linear}` on an input parameter indicates that the
 correspoding actual input variable at the call site must be available before the call and remains available after the call.
+The annotation `{:linear_out}` indicates that the actual input variable corresponding to at the call site will become available after the call.
 
-# Summarizing Asynchrony
+
+# Synchronizing Asynchrony
 
 In this section, we focus on Civl features for summarizing asynchronous procedure calls.
 
@@ -814,121 +832,10 @@ The difference in this example is that both `Service` and `Callback` refine the 
 Since `A_Inc` is a left mover (in fact, a both mover) it is possible to execute it exactly at the point of its asynchronous invocation.
 This intention is indicated by the `:sync` annotation on the asynchronous call.
 
-## Pending asyncs
-
-As described in the last section, Civl allows a procedure to make an asynchronous procedure call.
-Additionally and symmetrically, Civl also allows an atomic action to make an asynchronous call to an atomic action.
-Such a call is called a pending async, for brevity, to indicate that the effect of the asynchronous call is pending and becomes visible only once the side effects of the caller atomic action have been applied.
-
-Pending asyncs increase the expressiveness of refinement in Civl.
-Without pending asyncs, summarizing the effect of a procedure that makes an asynchronous procedure call required synchronization of the call.
-With pending asyncs, it is possible to achieve this summarization via a pending async in the refined action.
-Civl also allows a pending async in an atomic action to be eliminated subsequently.
-The next example illustrates the Civl features that allow the user to create and eliminate pending asyncs.
-
-```boogie
-var {:layer 0,3} x:int;
-
-yield procedure {:layer 2} Client()
-refines A_Inc;
-{
-  call Service();
-}
-
-atomic action {:layer 1} A_Service()
-creates A_Inc;
-refines A_Inc;
-{
-  call create_async(A_Inc());
-}
-yield procedure {:layer 0} Service()
-refines A_Service;
-{
-  async call Callback();
-}
-
-async both action {:layer 1,3} A_Inc()
-modifies x;
-{ x := x + 1; }
-yield procedure {:layer 0} Callback();
-refines A_Inc;
-```
-
-The call to `Callback` in procedure `Service` is not annotated with `:sync`.
-Therefore, Civl infers that this call must be converted into a pending async to `A_Inc` in the refined action `A_Service`.
-The action `A_Inc` is qualified with the declaration `async` to indicate that it may be used as a pending async.
-An async action is not allowed to have any output parameters.
-A datatype declaration corresponding to the signature of such an action is automatically created by Civl.
-A value of this datatype may be used as parameter to the primitive `create_async` in atomic action specifications
-to create a pending async.
-The `creates` specification contains the name of each atomic action that may be created as a pending async.
-The atomic action `A_Service` creates a single pending async `A_Inc()`.
-
-To complete the round trip, the pending async in the action `A_Service` is eliminated to get back the atomic action `A_Inc`.
-This elimination is indicated by the `refines A_Inc` specification on `A_Service`.
-Since `A_Inc` is a left mover, the verifier may pretend that the asynchronous call can be executed synchronously.
-
-Finally, the procedure `Client` which itself calls `Service` is shown to refine `A_Inc` also.
-The target of this call is rewritten to `A_Service` at layer 1 and to `A_Inc` at layer 2.
-
-## Inductive sequentialization
-
-In the last example, we saw how to eliminate a single pending async from an action.
-Civl also provides a feature to eliminate unboundedly many pending asyncs from an action.
-We now show this technique, known as inductive sequentialization, using an example.
-
-```boogie
-var {:layer 0,2} x:int;
-
-both action {:layer 2} A_Add (n: int)
-modifies x;
-{ assert 0 <= n; x := x + n; }
-
-action {:layer 1} INV(n: int)
-creates A_Inc;
-modifies x;
-{
-  var {:pool "A"} i: int;
-  assert 0 <= n;
-  assume {:add_to_pool "A", i} {:add_to_pool "A", i+1} 0 <= i && i <= n;
-  x := x + i;
-  call create_multi_asyncs(MapConst(0)[A_Inc() := n - i]);
-}
-
-atomic action {:layer 1} Async_Add(n: int)
-refines A_Add using INV;
-creates A_Inc;
-{
-  assert 0 <= n;
-  assume {:add_to_pool "A", 0} true;
-  call create_multi_asyncs(MapConst(0)[A_Inc() := n]);
-}
-
-async both action {:layer 1,2} A_Inc ()
-modifies x;
-{ x := x + 1; }
-```
-
-The action `Async_Add` uses the primitive `create_multi_asyncs` to create `n` pending asyncs
-of action `A_Inc` each of which asynchronously increments the global variable `x` by 1.
-As before, the action `A_Inc` is a left mover.
-We would like to use the mover type of `A_Inc` to show that `Async_Add` refines an action
-`A_Add` that increments `x` by `n` in one atomic step.
-
-To do this proof we use an auxiliary invariant `INV` and indicate it should be used for the
-refinement proof in the refines specification for `Async_Add`.
-The action `INV` is a generalization of `Async_Add`.
-`INV` includes every behavior of `Async_Add` and is also closed under extension by the eliminated action `A_Inc`.
-It is important to understand how `INV` is specified.
-The local variable `i` is initialized nondeterministically and constrained to be between `0` and `n`, both inclusive.
-The nondeterministic initialization choice represents the number of pending asyncs that have already executed,
-as indicated by the increment of `x` by `i`.
-Finally, the remaining `n-i` pending asyncs of `A_Inc` are created to indicate those pending asyncs that remain to
-be executed.
 
 # Quantifier-Instantiation Pools
-The example in the last [section](#inductive-sequentialization) used attributes `:pool` and `:add_to_pool`.
-These attributes are used to provide hints for instantiating quantifiers,
+The attributes `:pool` and `:add_to_pool`
+are used to provide hints for instantiating quantifiers,
 which are a notorious source of incompleteness and unpredictable performance in SMT solvers.
 In this section, we explain the use of these attributes.
 
@@ -999,7 +906,6 @@ The following proof steps are automatically carried out by Boogie using the inst
 - add ```x1'+1``` to pool ```"B"``` and ```y2'``` to pool ```"A"```
 - instantiate ```y1``` with ```y2'``` and ```x2``` with ```x1'+1```
 
-We now turn our attention back to the example in the last [section](#inductive-sequentialization).
-This example does not appear to have any quantified expression; yet the attribute `:pool "A"` is used on the local variable `i` of action `INV`.
-However, Civl internally generates the transition relation of action `INV` which existentially quantifies the nondeterministically-initialized local variable `i`.
-The pool hints in this example are targeted towards this internally-generated quantifier.
+Each local variable of an atomic action may also be annotated with the `:pool ...` attribute. 
+For each action, Civl internally generates a transition relation that existentially quantifies nondeterministically-initialized local variables.
+The pool hints on local variables of actions are targeted towards this internally-generated quantifier.
