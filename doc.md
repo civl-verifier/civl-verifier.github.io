@@ -336,7 +336,7 @@ The well-formedness of a layered concurrent programs is governed by a set of lay
 These rules ensure that the individual program layers can be extracted and that the verification guarantees are justified.
 We can loosely distinguish between "data layering" and "control layering".
 
-Data layering concernes the variables (both global and local) that exist on each layer.
+Data layering concerns the variables (both global and local) that exist on each layer.
 In the example above, both global variable `x` and local variable `val` (the input parameter to `Incr` and `AtomicIncr`) exist on all program layers.
 In a [later section](#introducing-and-hiding-variables) we show how variables can be introduced and hidden, such that different layers have different state.
 
@@ -357,7 +357,7 @@ Data layering and control layering obviously interact, since the variables acces
 
 Civl considers two semantics for a concurrent program, the *preemptive* and the *non-preemptive* semantics.
 The preemptive semantics is the standard interleaving semantics, where context switches can happen at any time between the execution of atomic actions.
-This is the semantics that models the acutal behaviors of the concurrent program; the behaviors that we want to verify.
+This is the semantics that models the actual behaviors of the concurrent program; the behaviors that we want to verify.
 By contrast, the non-preemptive semantics allows a context switch only at the entry to or exit from a procedure
 and at a call to a [yield invariant](#yield-invariants).
 In particular, a context switch is not introduced just before or just after executing an atomic action.
@@ -437,7 +437,7 @@ Since `read_y` has the precondition `x == y` (the invariant that expresses our i
 In `write_y`, the input variable `y'` is written to `x` by `write_x`.
 But what about `y`?
 To express our intention for `y` we call the action `Copy`,
-a pure action defind in the Civl base library which copies its input into its output.
+a pure action defined in the Civl base library which copies its input into its output.
 We often use calls to `Copy`, together with a layer annotation to introduce computation.
 This particular call sets `y` to the current value of `x`, which at the time of invocation is `y'`.
 Thus we get `y == y'` and we can prove that `write_y` refines `atomic_write_y`.
@@ -685,7 +685,7 @@ datatype A<T> { A(v: One T, u: int) }
 ```
 
 A linear variable `x` of type `A T` contains the singleton set of permissions `{x->v}`.
-A linear variable `x` of type `Set (One T)` contains the set of permissios `x`.
+A linear variable `x` of type `Set (One T)` contains the set of permissions `x`.
 A linear variable `x` of type `Map K V` contains the union of permissions inside `x->val[k]`
 for each `k` in `x->dom`.
 Additionally, if `K = One _` then the set `x->dom` is added to the set of permissions in `x`.
@@ -695,7 +695,7 @@ state of the program.
 As the program executes, the permissions stored in the program variables may be redistributed but not duplicated,
 a condition that is verified via linear typing implemented in the Civl type checker.
 Civl exploits this disjointness invariant to automatically inject logical assumptions when proving that a 
-location or yield invariant is inteference-free or two actions commute with each other.
+location or yield invariant is interference-free or two actions commute with each other.
 
 
 ```boogie
@@ -787,7 +787,7 @@ and the input `tid` among `mutatorsInBarrier` and output `tid'`.
 
 Although not used in the program above, input parameters may be annotated with `{:linear}` and `{:linear_out}`.
 The annotation `{:linear}` on an input parameter indicates that the
-correspoding actual input variable at the call site must be available before the call and remains available after the call.
+corresponding actual input variable at the call site must be available before the call and remains available after the call.
 The annotation `{:linear_out}` indicates that the actual input variable corresponding to at the call site will become available after the call.
 
 
@@ -863,7 +863,7 @@ For example, the first assert statement adds the term `1` to the pool `"L"`.
 The second assert statement illustrates a more sophisticated use of instantiation pools.
 Unlike the first assert statement, the expression is this assert has a universal quantifier.
 The verification condition generator in Boogie detects that this quantifier may be skolemized using a fresh constant `y0`.
-The `add_to_pool` hint in the body of the quantier tells Boogie to add the term `y0+1` to the pool `"L"`.
+The `add_to_pool` hint in the body of the quantifier tells Boogie to add the term `y0+1` to the pool `"L"`.
 Another way to think about this explanation is that Boogie automatically generates the following intermediate program
 whose correctness implies the correctness of the original program.
 
