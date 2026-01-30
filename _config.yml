@@ -1,5 +1,5 @@
 title: Civl
 description: A verifier for concurrent programs
-theme: jekyll-theme-cayman
+theme: just-the-docs
 github:
   is_project_page: false
