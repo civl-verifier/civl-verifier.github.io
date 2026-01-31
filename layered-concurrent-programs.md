@@ -76,7 +76,7 @@ yield procedure Main()
 }
 ```
 
-The layer-0 program is shown above.
+The layer 0 program is shown above.
 Procedure `IncrBy2` creates two tasks via a parallel call to `Incr`, each instance of which
 makes a single call to the atomic action `Intro_x`.
 Preemptions can occur at entry into or exit from `Main`, `IncrBy2`, or `Incr`.
@@ -102,9 +102,14 @@ yield procedure Main()
 }
 ```
 
-In the layer-1 program, shown above, the parallel call to `Incr` is rewritten to a sequence of calls to `AtomicIncr`.
+In the layer 1 program, shown above, the parallel call to `Incr` is rewritten to a sequence of calls to `AtomicIncr`.
 The justification for this rewrite is that `Incr` refines `AtomicIncr` and `AtomicIncr` is a left mover.
 Explanation for these concepts is presented later.
+
+The implementation of yield procedures at layer 0 is often omitted.
+In this case, the layer 0 program is not defined.
+The atomic actions refined by layer 0 procedures are considered primitive atomic actions used
+to define the semantics of the (lowest) layer 1 program.
 
 ### Program at Layer 2
 
@@ -121,25 +126,25 @@ yield procedure Main()
 }
 ```
 
-In the layer-2 program, shown above, the call to procedure `IncrBy2` in `Main` is rewritten to a call to atomic action `AtomicIncrBy2`.
+In the layer 2 program, shown above, the call to procedure `IncrBy2` in `Main` is rewritten to a call to atomic action `AtomicIncrBy2`.
 The justification for this rewrite is that `IncrBy2` refines `AtomicIncrBy2`.
 
 ## Layer Checking
 
-The well-formedness of a layered concurrent program is governed by a set of layer type-checking rules.
+The well-formedness of a layered concurrent program is governed by a set of layer checking rules.
 These rules ensure that the individual program layers can be extracted and that the verification guarantees are justified.
 We can loosely distinguish between "data layering" and "control layering".
 
 Data layering concerns the variables (both global and local) that exist on each layer.
 In the example above, both global variable `x` and local variable `val` (the input parameter to `Incr` and `AtomicIncr`) exist on all program layers.
-In a [later section](#introducing-and-hiding-variables) we show how variables can be introduced and hidden, such that different layers have different state.
+In a [different section](https://civl-verifier.github.io/introducing-hiding-variables.html) we show how variables can be introduced and hidden, such that different layers have different variables.
 
 Control layering concerns the actions and yielding procedures that exist on each layer.
-As one of the most central aspects of Civl, this controls how the bodies of yielding procedures change across layers.
+This aspect controls how the bodies of yielding procedures change across layers.
 In a layered concurrent program, atomic actions cannot be called directly.
 Instead, yielding procedures can call other yielding procedures.
 For example, recall that `IncrBy2` in the layered program above makes calls to procedure `Incr`, as opposed to `AtomicIncr`.
-In the layer 0 program we still see this calls to `Incr`.
+In the layer 0 program we still see this call to `Incr`.
 Then, since `Incr` disappears at layer 0 and is abstracted by `AtomicIncr`, we see these calls replaced by calls to `AtomicIncr` in the layer 1 program.
 In general, a yielding procedure that disappears at layer `n` cannot make calls to yielding procedures that disappear on a layer greater than `n`.
 The simple case is that there are only calls to procedures that disappear on layers smaller than `n`.
@@ -149,14 +154,15 @@ Data layering and control layering obviously interact, since the variables acces
 
 ## Semantics
 
-Civl considers two semantics for a concurrent program, the *preemptive* and the *non-preemptive* semantics.
+Civl considers two semantics for a concurrent program---*preemptive* and *non-preemptive*.
 The preemptive semantics is the standard interleaving semantics, where context switches can happen at any time between the execution of atomic actions.
-This is the semantics that models the actual behaviors of the concurrent program; the behaviors that we want to verify.
-By contrast, the non-preemptive semantics allows a context switch only at the entry to or exit from a procedure
-and at a call to a [yield invariant](#yield-invariants).
+This semantics models the actual behaviors of the concurrent program that we want to verify.
+In contrast, the non-preemptive semantics allows a context switch only at the entry to or return from a procedure
+and at a call to a [yield invariant](https://civl-verifier.github.io/yield-invariants.html).
 In particular, a context switch is not introduced just before or just after executing an atomic action.
 The non-preemptive semantics simplifies reasoning, because fewer interleavings have to be considered.
-Civl justifies going from the preemptive to the non-preemptive semantics using [mover types](#mover-types).
+Civl justifies going from the preemptive to the non-preemptive semantics using
+[mover types](https://civl-verifier.github.io/mover-types.html).
 
 A program location where a context switch may happen is called a *yield location*.
 Any execution path in a procedure from its entry to its exit is
@@ -168,4 +174,4 @@ Civl checks that there are "sufficiently many" yield locations such that reasoni
 is sufficient to reason about the preemptive semantics.
 
 Going from preemptive to non-preemptive semantics simplifies the reasoning at one particular program layer.
-In going from the layer-0 program to the layer-2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invocations of atomic actions, thereby leading to simplified reasoning at the higher layer.
+In going from the layer 0 program to the layer 2 program, the set of yield locations progressively reduces because invocations of yielding procedures are replaced by invocations of atomic actions, thereby leading to simplified reasoning at the higher layer.
