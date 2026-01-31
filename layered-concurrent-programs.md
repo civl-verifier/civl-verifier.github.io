@@ -52,6 +52,13 @@ The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on w
 The annotation `refines AtomicIncr` on `Incr` indicates that on layers greater than 0 a call to `Incr` is rewritten to a call to `AtomicIncr`.
 Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
 
+The implementation of yield procedures at layer 0 is often omitted.
+In this case, the layer 0 program is not defined.
+The atomic actions refined by layer 0 procedures are considered primitive atomic actions used
+to define the semantics of the (lowest) layer 1 program.
+For a more detailed explanation,
+we have chosen to provide an implementation for the layer 0 procedure in our example.
+
 ### Program at Layer 0
 
 ```boogie
@@ -105,11 +112,6 @@ yield procedure Main()
 In the layer 1 program, shown above, the parallel call to `Incr` is rewritten to a sequence of calls to `AtomicIncr`.
 The justification for this rewrite is that `Incr` refines `AtomicIncr` and `AtomicIncr` is a left mover.
 Explanation for these concepts is presented later.
-
-The implementation of yield procedures at layer 0 is often omitted.
-In this case, the layer 0 program is not defined.
-The atomic actions refined by layer 0 procedures are considered primitive atomic actions used
-to define the semantics of the (lowest) layer 1 program.
 
 ### Program at Layer 2
 
