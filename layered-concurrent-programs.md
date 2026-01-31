@@ -78,7 +78,7 @@ yield procedure Main()
 
 The layer 0 program is shown above.
 Procedure `IncrBy2` creates two tasks via a parallel call to `Incr`, each instance of which
-makes a single call to the atomic action `Intro_x`.
+makes a single call to the atomic action `Add`.
 Preemptions can occur at entry into or exit from `Main`, `IncrBy2`, or `Incr`.
 
 ### Program at Layer 1
