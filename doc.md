@@ -1,5 +1,6 @@
 ---
-title: Civl Documentation
+title: Documentation
+nav_order: 1
 ---
 
 [Civl Syntax](#civl-syntax)
