@@ -195,6 +195,5 @@ checked does not include this variable.
 Similary, any output parameter of the procedure annotated with `:hide` is excluded from the visible state.
 
 If a yield procedure omits the refines clause, it is expected to refine the SKIP action.
-This is tantamount to annotating each parameter of the procedure with `:hide`.
 Since the SKIP action does not modify any variable, every yield-to-yield fragment in the procedure is allowed to modify
 only those global variables that are hidden at the disappearing layer of the procedure.

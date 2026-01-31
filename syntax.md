@@ -106,11 +106,15 @@ yield procedure {:layer 1} foo (...) returns (...);
 refines FOO;
 ```
 
-Action procedure `foo` *disappears* at layer `1` and *refines* the atomic action
-`FOO`.
+Action procedure `foo` *disappears* at layer `1` and *refines* the atomic action `FOO`.
+The procedure `foo` and the action `FOO` must have the same signature
+unless parameters are explicitly hidden.
+Parameters of action procedures can be annotated with `:hide` to declare that
+the parameter does not occur in the refined atomic action.
 
 If no `refines` clause is given, then the procedure is called a
-*skip procedure* which refines the implicitly declared atomic action `SKIP`.
+*skip procedure* which refines the implicitly declared atomic action `SKIP` that does nothing.
+Refining `SKIP` is tantamount to annotating each parameter of the procedure with `:hide`.
 
 ```boogie
 both action {:layer 0,∞} SKIP () { }
@@ -132,41 +136,44 @@ yield procedure {:layer 5} Foo({:layer 2,4} x: int) returns ({:layer 3} y: int)
 }
 ```
 
-Suppose the yielding procedure has the disappearing layer N.
+Suppose a yielding procedure has the disappearing layer N.
 The layer range of each local variable of this procedure is
 required to be a subset of the layer range [0,N].
 The layer range `{:layer n}` on a local variable is identical to `{:layer n,n}`.
 If a layer range is not provided, the variable gets the default layer range of [0,N].
 
-## Implementations
+A loop in the body of a yielding procedure may be *yielding* or *non-yielding*.
+To indicate that a loop is yielding, the ```{:yields}``` attribute is used in a loop invariant.
 
-The implementations (i.e., bodies) of yielding procedures support the following
-additional commands.
+```boogie
+while (e)
+invariant {:yields} {:layer 3} true;
+{
+  ...
+}
+```
+
+The loop above is yielding at layer 3 and below but non-yielding at layers above 3 and up to N.
+The layer 3 is the boundary layer for the loop.
+If ```{:yields}``` is omitted, the loop is expected to be non-yielding for all layers up to N.
+If the layer annotation on a yielding loop is omitted, its boundary layer takes the default value N.
+
+The bodies of yielding procedures support the following additional commands.
 
 * **Parallel call**: `par i := A(j) | k := B(l)`
 * **Asynchronous call**: `async call A(i)`
+
 
 ## Specifications
 
 Every precondition, postcondition, assertion, and loop invariant is annotated
 with a list of layer numbers (`{:layer l1, l2, ...}`).
+Each layer in this list must be bounded by the disappearing layer of the enclosing procedure.
 
 Yield invariants can be invoked in calls, parallel calls, as preconditions
 (`requires call`), postconditions (`ensures call`), and loop invariants
 (`invariant call`).
-
-Every loop is either *non-yielding* or *yielding* (denoted with `:yields` on a
-loop invariant with condition `true`).
-
-## Parameters
-
-Every input and output parameter of a yielding procedure has a layer range.
-Implicitly, it ranges from the lowest layer up to the disappearing layer of the
-procedure. A different layer range can be assigned to every parameter using the
-`:layer` attribute.
-
-Parameters of action procedures can be annotated with `:hide` to declare that
-the parameter does not occur in the refined atomic action.
+The layer of the called yield invariant must be bounded by the disappearing layer of the enclosing procedure.
 
 ## Pure Actions
 
