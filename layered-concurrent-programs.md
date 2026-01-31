@@ -126,7 +126,7 @@ The justification for this rewrite is that `IncrBy2` refines `AtomicIncrBy2`.
 
 ## Layer Checking
 
-The well-formedness of a layered concurrent programs is governed by a set of layer type-checking rules.
+The well-formedness of a layered concurrent program is governed by a set of layer type-checking rules.
 These rules ensure that the individual program layers can be extracted and that the verification guarantees are justified.
 We can loosely distinguish between "data layering" and "control layering".
 
@@ -135,7 +135,7 @@ In the example above, both global variable `x` and local variable `val` (the inp
 In a [later section](#introducing-and-hiding-variables) we show how variables can be introduced and hidden, such that different layers have different state.
 
 Control layering concerns the actions and yielding procedures that exist on each layer.
-As one of the most central aspects of Civl, this controls how the bodies of yielding procedures changes across layers.
+As one of the most central aspects of Civl, this controls how the bodies of yielding procedures change across layers.
 In a layered concurrent program, atomic actions cannot be called directly.
 Instead, yielding procedures can call other yielding procedures.
 For example, recall that `IncrBy2` in the layered program above makes calls to procedure `Incr`, as opposed to `AtomicIncr`.

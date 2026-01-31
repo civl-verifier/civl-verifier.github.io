@@ -66,7 +66,7 @@ modifies x;
 
 In the program above, the mover procedure `inc` is annotated with the mover type `left`.
 This annotation is applicable to `inc` only at its disappearing layer 1.
-This annotation indicates that, at layer 1, any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer-1 preconditions and postconditions of `inc`.
+This annotation indicates that, at layer 1, any execution of the implementation of `inc` can be considered an indivisible computation that behaves like a left mover and is summarized by the layer 1 preconditions and postconditions of `inc`.
 A mover procedure that disappears at layer `n` can only be called by yielding procedures that also disappear at layer `n`.
 
 ## Abstraction aids Commutativity
