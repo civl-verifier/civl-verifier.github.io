@@ -1,5 +1,5 @@
 ---
-title: Layered concurrent programs
+title: Layered Concurrent Programs
 nav_order: 2
 ---
 
