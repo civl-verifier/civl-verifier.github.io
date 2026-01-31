@@ -3,7 +3,7 @@ title: Mover Types
 nav_order: 4
 ---
 
-In this section, we explain how Civl exploits commutativity of atomic actions to justify reasoning about non-preemptive semantics at each layer.
+Civl exploits commutativity of atomic actions to justify reasoning about non-preemptive semantics at each layer.
 Civl allows each atomic action to be labeled by one of four mover types: `atomic`, `left`, `right`, and `both`.
 The following code illustrates mover types for atomic actions.
 
