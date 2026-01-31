@@ -89,8 +89,9 @@ The variables introduced at layer n and the actions that introduce them
 are present in the high program but not the low program at layer n.
 Refinement checking at a layer is performed on the high program of that layer.
 
-The [earlier example](#a-simple-layered-concurrent-program) only showed the high
-program at each layer.
+The detailed example in the section on
+[Layered Concurrent Programs](https://civl-verifier.github.io/layered-concurrent-programs.html)
+only showed the high program at each layer.
 In that example, since the only layer at which variables are introduced is layer 0,
 the low and high programs coincide at all layers except 0.
 In the program described in this section, `x` is introduced at layer 0 and `y` is

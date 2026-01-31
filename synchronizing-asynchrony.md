@@ -3,8 +3,7 @@ title: Synchronizing Asynchrony
 nav_order: 8
 ---
 
-
-In this section, we focus on Civl features for synchronizing asynchronous procedure calls.
+Civl provides the ability to synchronize asynchronous procedure calls.
 
 ```boogie
 yield procedure {:layer 1} Service()
