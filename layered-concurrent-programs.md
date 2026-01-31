@@ -47,7 +47,7 @@ Layer 0 is the most concrete and layer 2 is the most abstract.
 The annotation `{:layer 0,2}` on global variable `x` is a range of layers from 0 to 2 indicating that `x` exists at all layers in this layer range.
 The global variable `x` is introduced at layer 0 via a call to the pure action `Add` and hidden at layer 2.
 Introduction and hiding of global and local variables is explained in detail in a
-[later section](#introducing-and-hiding-variables).
+[different section](https://civl-verifier.github.io/introducing-hiding-variables.html).
 The annotation `{:layer 0}` on `Incr` indicates that 0 is the highest layer on which `Incr` exists.
 The annotation `refines AtomicIncr` on `Incr` indicates that on layers greater than 0 a call to `Incr` is rewritten to a call to `AtomicIncr`.
 Similarly, procedure `IncrBy2` exists on layers 1 and lower and is replaced by `AtomicIncrBy` at layers above 1.
