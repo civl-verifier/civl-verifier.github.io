@@ -1,6 +1,6 @@
 ---
 title: Yield Invariants
-nav_order: 6
+nav_order: 5
 ---
 
 Reasoning about concurrent programs is difficult because of the

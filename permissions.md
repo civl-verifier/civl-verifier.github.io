@@ -1,6 +1,6 @@
 ---
 title: Permissions 
-nav_order: 7
+nav_order: 6
 ---
 
 Civl provides a polymorphic type `One T` to store permissions.

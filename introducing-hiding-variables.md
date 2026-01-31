@@ -60,14 +60,14 @@ Now we want to show that `read_y` refines `atomic_read_y`, and `write_y` refines
 Since `read_y` has the precondition `x == y` (the invariant that expresses our intended connection between `x` and `y`), we know that after reading `x` into the output variable `v`, also `v == y` holds, which is all we need to prove that `read_y` refines `atomic_read_y`.
 In `write_y`, the input variable `y'` is written to `x` by `write_x`.
 But what about `y`?
-To express our intention for `y` we call the action `Copy`,
-a pure action defined in the Civl base library which copies its input into its output.
+To express our intention for `y` we call `Copy`,
+a pure procedure defined in the Civl base library which copies its input into its output.
 We often use calls to `Copy`, together with a layer annotation to introduce computation.
 This particular call sets `y` to the current value of `x`, which at the time of invocation is `y'`.
 Thus we get `y == y'` and we can prove that `write_y` refines `atomic_write_y`.
 
 Invocation of `Copy` has the specific purpose of assigning meaning to introduced variables.
-Such a call is a kind of ghost code that does not cause a context switch;
+Such a call does not cause a context switch;
 recall that `atomic_write_x` and `Copy` need to execute without context switch to ensure `y == y'`.
 
 We have the following layering constraints:

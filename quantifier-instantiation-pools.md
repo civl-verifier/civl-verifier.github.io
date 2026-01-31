@@ -1,6 +1,6 @@
 ---
 title: Quantifier-Instantiation Pools
-nav_order: 9
+nav_order: 8
 ---
 
 The attributes `:pool` and `:add_to_pool`

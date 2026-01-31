@@ -1,6 +1,6 @@
 ---
 title: Mover Types
-nav_order: 5
+nav_order: 4
 ---
 
 In this section, we explain how Civl exploits commutativity of atomic actions to justify reasoning about non-preemptive semantics at each layer.

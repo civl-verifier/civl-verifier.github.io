@@ -1,6 +1,6 @@
 ---
 title: Synchronizing Asynchrony
-nav_order: 8
+nav_order: 7
 ---
 
 Civl provides the ability to synchronize asynchronous procedure calls.
