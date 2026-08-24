@@ -18,10 +18,19 @@ datatype A<T> { A(v: One T, u: int) }
 ```
 
 A linear variable `x` of type `A T` contains the singleton set of permissions `{x->v}`.
-A linear variable `x` of type `Set (One T)` contains the set of permissions `x`.
 A linear variable `x` of type `Map K V` contains the union of permissions inside `x->val[k]`
 for each `k` in `x->dom`.
 Additionally, if `K = One _` then the set `x->dom` is added to the set of permissions in `x`.
+To model a set of permissions without any associated values,
+a type `Unit` and a type alias `UnitMap` are provided.
+
+```boogie
+datatype Unit { Unit() }
+
+type UnitMap K = Map K Unit;
+```
+
+A linear variable `x` of type `UnitMap (One T)` contains the set of permissions `x->dom`.
 
 The permissions stored in linear variables are guaranteed to disjoint from each other in any reachable
 state of the program.
@@ -65,11 +74,11 @@ The yield invariant `YieldInv` is proved interference-free against any yield-to-
 ```boogie
 datatype Perm { Left(i: int), Right(i: int) }
 
-datatype Tid { Tid(i: int, ps: Set (One Perm)) }
+datatype Tid { Tid(i: int, ps: UnitMap (One Perm)) }
 
 var {:layer 0,1} barrierOn: bool;
 var {:layer 0,1} barrierCounter: int;
-var {:layer 0,1} {:linear} mutatorsInBarrier: Set (One Perm);
+var {:layer 0,1} {:linear} mutatorsInBarrier: UnitMap (One Perm);
 
 atomic action {:layer 1} AtomicEnterBarrier({:linear_in} tid: Tid) returns ({:linear} tid': Tid)
 {
@@ -91,8 +100,8 @@ atomic action {:layer 1} AtomicWaitForBarrierRelease({:linear_in} tid: Tid) retu
   var i: int;
 
   i := tid->i;
-  assert Set_Contains(tid->ps, One(Right(i)));
-  assert Set_Contains(mutatorsInBarrier, One(Left(i)));
+  assert Map_Contains(tid->ps, One(Right(i)));
+  assert Map_Contains(mutatorsInBarrier, One(Left(i)));
   assume !barrierOn;
   p := One(Left(i));
   call One_Get(mutatorsInBarrier, p);
