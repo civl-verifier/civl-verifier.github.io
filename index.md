@@ -39,7 +39,7 @@ which can be installed from a [NuGet package](https://www.nuget.org/packages/Boo
 To verify a Civl program, simply invoke Boogie on the program as follows:
 
 ```
-$ boogie Test/civl/ticket.bpl
+$ boogie Test/civl/samples/ticket.bpl
 
 Boogie program verifier finished with 8 verified, 0 errors
 ```
@@ -52,12 +52,12 @@ Further available options are listed by `-help`.
 For a general overview, we have a tutorial ([slides](https://docs.google.com/presentation/d/1ZwlPwGjG4WMsHK0iBRl2K_J56s1WOffwqfNlyXLW0TQ/edit?usp=sharing), [recording](https://www.youtube.com/watch?v=IupUuKU7UdQ&t=4s)).
 
 We recommend looking at simple
-examples from our [suite of samples](https://github.com/boogie-org/boogie/tree/master/Test/civl/samples),
-like `Program*.bpl`, `cav2020-*.bpl`, and `freund.bpl`.
-Other notable examples include
-a [verified garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/large-samples/GC.bpl),
+[examples](https://github.com/boogie-org/boogie/tree/master/Test/civl/samples)
+to get an idea of the programming model.
+Notable examples include
+a [garbage collector](https://github.com/boogie-org/boogie/blob/master/Test/civl/large-samples/GC.bpl),
 lock implementations
-([spinlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/lock-introduced.bpl),
+([spinlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/spin-lock.bpl),
 [ticket](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/ticket.bpl),
 [seqlock](https://github.com/boogie-org/boogie/blob/master/Test/civl/samples/seqlock.bpl)),
 concurrent data structures
